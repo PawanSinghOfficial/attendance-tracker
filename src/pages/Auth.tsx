@@ -62,17 +62,25 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
     setIsLoading(true);
     setError(null);
     try {
-      const formData = new FormData(event.currentTarget);
-      await signIn("email-otp", formData);
+      // Manually construct FormData to ensure code is properly set
+      const formData = new FormData();
+      if (step !== "signIn") {
+        formData.append("email", step.email);
+        formData.append("code", otp);
 
-      console.log("signed in");
+        console.log("Submitting OTP verification:", { email: step.email, code: otp });
 
-      const redirect = redirectAfterAuth || "/";
-      navigate(redirect);
+        await signIn("email-otp", formData);
+
+        console.log("signed in");
+
+        const redirect = redirectAfterAuth || "/";
+        navigate(redirect);
+      }
     } catch (error) {
       console.error("OTP verification error:", error);
 
-      setError("The verification code you entered is incorrect.");
+      setError("The verification code you entered is incorrect. Please try again.");
       setIsLoading(false);
 
       setOtp("");
@@ -190,9 +198,6 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
               </CardHeader>
               <form onSubmit={handleOtpSubmit}>
                 <CardContent className="pb-4">
-                  <input type="hidden" name="email" value={step.email} />
-                  <input type="hidden" name="code" value={otp} />
-
                   <div className="flex justify-center">
                     <InputOTP
                       value={otp}
