@@ -17,6 +17,7 @@ const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
 const Subjects = lazy(() => import("./pages/Subjects.tsx"));
 const Settings = lazy(() => import("./pages/Settings.tsx"));
+const Schedule = lazy(() => import("./pages/Schedule.tsx"));
 
 // Simple loading fallback for route transitions
 function RouteLoading() {
@@ -63,6 +64,7 @@ function AnimatedRoutes() {
         <Route path="/" element={<Landing />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/subjects" element={<Subjects />} />
+        <Route path="/schedule" element={<Schedule />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/auth" element={<AuthPage redirectAfterAuth="/dashboard" />} />
         <Route path="*" element={<NotFound />} />

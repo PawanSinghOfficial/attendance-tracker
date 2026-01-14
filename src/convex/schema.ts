@@ -70,6 +70,19 @@ const schema = defineSchema(
       date: v.string(), // Format: "YYYY-MM-DD"
     }).index("by_date", ["date"]),
 
+    // Class exceptions (for specific day additions/cancellations)
+    classExceptions: defineTable({
+      date: v.string(), // Format: "YYYY-MM-DD"
+      type: v.union(v.literal("added"), v.literal("cancelled")), // added = extra class, cancelled = regular class cancelled
+      subjectId: v.id("subjects"),
+      classId: v.optional(v.id("classes")), // Reference to regular class if cancelling
+      startTime: v.optional(v.string()), // For added classes
+      endTime: v.optional(v.string()), // For added classes
+      classType: v.optional(v.string()), // "LECTURE", "LAB", "TUTORIAL" - for added classes
+      reason: v.optional(v.string()), // Optional reason for change
+    }).index("by_date", ["date"])
+      .index("by_subject_and_date", ["subjectId", "date"]),
+
     // Settings table (single row for app-wide settings)
     settings: defineTable({
       semesterStartDate: v.optional(v.string()), // Format: "YYYY-MM-DD"

@@ -11,6 +11,7 @@
 import type * as attendance from "../attendance.js";
 import type * as auth from "../auth.js";
 import type * as auth_emailOtp from "../auth/emailOtp.js";
+import type * as classExceptions from "../classExceptions.js";
 import type * as classes from "../classes.js";
 import type * as holidays from "../holidays.js";
 import type * as http from "../http.js";
@@ -29,6 +30,7 @@ declare const fullApi: ApiFromModules<{
   attendance: typeof attendance;
   auth: typeof auth;
   "auth/emailOtp": typeof auth_emailOtp;
+  classExceptions: typeof classExceptions;
   classes: typeof classes;
   holidays: typeof holidays;
   http: typeof http;

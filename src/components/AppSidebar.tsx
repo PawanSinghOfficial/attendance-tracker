@@ -1,4 +1,4 @@
-import { LayoutDashboard, BookOpen, Settings } from "lucide-react";
+import { LayoutDashboard, BookOpen, Settings, CalendarDays } from "lucide-react";
 import { Link, useLocation } from "react-router";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,11 @@ const navItems = [
     icon: BookOpen,
     label: "Subjects",
     href: "/subjects",
+  },
+  {
+    icon: CalendarDays,
+    label: "Schedule",
+    href: "/schedule",
   },
   {
     icon: Settings,

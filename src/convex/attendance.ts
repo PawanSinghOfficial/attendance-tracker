@@ -1,11 +1,26 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
-// Get all attendance records
+// Get all attendance records (filtered by semester dates if set)
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db.query("attendance").collect();
+    const allAttendance = await ctx.db.query("attendance").collect();
+
+    // Get semester settings
+    const settings = await ctx.db.query("settings").first();
+
+    // If semester dates are not set, return all attendance
+    if (!settings?.semesterStartDate || !settings?.semesterEndDate) {
+      return allAttendance;
+    }
+
+    // Filter by semester dates
+    return allAttendance.filter(
+      (record) =>
+        record.date >= settings.semesterStartDate! &&
+        record.date <= settings.semesterEndDate!
+    );
   },
 });
 
@@ -108,13 +123,27 @@ export const resetAll = mutation({
   },
 });
 
-// Get overall attendance statistics
+// Get overall attendance statistics (filtered by semester dates if set)
 export const getOverallStats = query({
   args: {},
   handler: async (ctx) => {
     const allAttendance = await ctx.db.query("attendance").collect();
-    const present = allAttendance.filter((r) => r.status === "present").length;
-    const absent = allAttendance.filter((r) => r.status === "absent").length;
+
+    // Get semester settings
+    const settings = await ctx.db.query("settings").first();
+
+    // Filter by semester dates if set
+    let filteredAttendance = allAttendance;
+    if (settings?.semesterStartDate && settings?.semesterEndDate) {
+      filteredAttendance = allAttendance.filter(
+        (record) =>
+          record.date >= settings.semesterStartDate! &&
+          record.date <= settings.semesterEndDate!
+      );
+    }
+
+    const present = filteredAttendance.filter((r) => r.status === "present").length;
+    const absent = filteredAttendance.filter((r) => r.status === "absent").length;
     const total = present + absent;
     const percentage = total > 0 ? (present / total) * 100 : 0;
 

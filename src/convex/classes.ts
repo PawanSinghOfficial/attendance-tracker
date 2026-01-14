@@ -100,3 +100,82 @@ export const getWeeklySchedule = query({
     return weeklySchedule;
   },
 });
+
+// Get schedule for a specific date, considering holidays and exceptions
+export const getScheduleForDate = query({
+  args: { date: v.string() },
+  handler: async (ctx, args) => {
+    // Check if it's a holiday
+    const holiday = await ctx.db
+      .query("holidays")
+      .withIndex("by_date", (q) => q.eq("date", args.date))
+      .first();
+
+    if (holiday) {
+      return {
+        isHoliday: true,
+        holidayName: holiday.name,
+        classes: [],
+      };
+    }
+
+    // Get day of week from date
+    const dateObj = new Date(args.date + "T00:00:00");
+    const dayOfWeek = dateObj.getDay();
+
+    // Get regular classes for this day
+    const regularClasses = await ctx.db
+      .query("classes")
+      .withIndex("by_day", (q) => q.eq("dayOfWeek", dayOfWeek))
+      .collect();
+
+    // Get exceptions for this date
+    const exceptions = await ctx.db
+      .query("classExceptions")
+      .withIndex("by_date", (q) => q.eq("date", args.date))
+      .collect();
+
+    // Get subjects
+    const subjects = await ctx.db.query("subjects").collect();
+    const subjectMap = new Map(subjects.map((s) => [s._id, s]));
+
+    // Filter out cancelled classes
+    const cancelledClassIds = new Set(
+      exceptions
+        .filter((e) => e.type === "cancelled" && e.classId)
+        .map((e) => e.classId)
+    );
+
+    const activeRegularClasses = regularClasses
+      .filter((cls) => !cancelledClassIds.has(cls._id))
+      .map((cls) => ({
+        ...cls,
+        subject: subjectMap.get(cls.subjectId),
+        isException: false,
+      }));
+
+    // Add extra classes
+    const addedClasses = exceptions
+      .filter((e) => e.type === "added")
+      .map((e) => ({
+        _id: e._id,
+        subjectId: e.subjectId,
+        dayOfWeek,
+        startTime: e.startTime || "09:00",
+        endTime: e.endTime || "10:00",
+        type: e.classType || "LECTURE",
+        subject: subjectMap.get(e.subjectId),
+        isException: true,
+        exceptionReason: e.reason,
+      }));
+
+    const allClasses = [...activeRegularClasses, ...addedClasses].sort(
+      (a, b) => a.startTime.localeCompare(b.startTime)
+    );
+
+    return {
+      isHoliday: false,
+      classes: allClasses,
+    };
+  },
+});
