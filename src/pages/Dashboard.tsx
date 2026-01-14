@@ -1,0 +1,530 @@
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { AppLayout } from "@/components/AppLayout";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { ProgressRing } from "@/components/ProgressRing";
+import { motion } from "framer-motion";
+import { format, parseISO } from "date-fns";
+import {
+  getCurrentWeekDates,
+  formatDate,
+  isToday,
+  getShortDayName,
+  calculateClassesNeeded,
+  calculateRemainingClasses,
+  willReachTarget,
+  calculateStreak,
+} from "@/lib/attendance-utils";
+import { Check, X, Clock, AlertTriangle, TrendingUp, Flame, Plus } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown } from "lucide-react";
+import { Id } from "@/convex/_generated/dataModel";
+
+export default function Dashboard() {
+  const subjects = useQuery(api.subjects.list);
+  const weeklySchedule = useQuery(api.classes.getWeeklySchedule);
+  const allAttendance = useQuery(api.attendance.list);
+  const overallStats = useQuery(api.attendance.getOverallStats);
+  const settings = useQuery(api.settings.get);
+  const markAttendance = useMutation(api.attendance.mark);
+
+  const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set());
+
+  const today = new Date();
+  const todayStr = formatDate(today);
+  const weekDates = getCurrentWeekDates();
+
+  const handleMarkAttendance = async (
+    subjectId: Id<"subjects">,
+    classId: Id<"classes"> | undefined,
+    date: string,
+    status: "present" | "absent"
+  ) => {
+    try {
+      await markAttendance({
+        subjectId,
+        classId,
+        date,
+        status,
+      });
+      toast.success(`Marked as ${status}`);
+    } catch (error) {
+      toast.error("Failed to mark attendance");
+    }
+  };
+
+  const toggleSubjectExpansion = (subjectId: string) => {
+    const newExpanded = new Set(expandedSubjects);
+    if (newExpanded.has(subjectId)) {
+      newExpanded.delete(subjectId);
+    } else {
+      newExpanded.add(subjectId);
+    }
+    setExpandedSubjects(newExpanded);
+  };
+
+  // Get today's classes
+  const todayClasses =
+    weeklySchedule && weeklySchedule[today.getDay()]
+      ? weeklySchedule[today.getDay()].sort((a, b) => a.startTime.localeCompare(b.startTime))
+      : [];
+
+  // Get attendance for each subject
+  const subjectStats =
+    subjects?.map((subject) => {
+      const subjectAttendance =
+        allAttendance?.filter((a) => a.subjectId === subject._id) || [];
+      const present = subjectAttendance.filter((a) => a.status === "present").length;
+      const absent = subjectAttendance.filter((a) => a.status === "absent").length;
+      const total = present + absent;
+      const percentage = total > 0 ? (present / total) * 100 : 0;
+
+      const classesPerWeek =
+        weeklySchedule
+          ? Object.values(weeklySchedule)
+              .flat()
+              .filter((c) => c.subjectId === subject._id).length
+          : 2;
+
+      const remainingClasses = calculateRemainingClasses(
+        settings?.semesterEndDate,
+        classesPerWeek
+      );
+
+      const prediction = willReachTarget(present, total, subject.targetAttendance, remainingClasses);
+
+      const classesNeeded = calculateClassesNeeded(present, total, subject.targetAttendance);
+
+      const streak = percentage === 100 ? calculateStreak(subjectAttendance) : 0;
+
+      return {
+        subject,
+        present,
+        absent,
+        total,
+        percentage,
+        prediction,
+        classesNeeded,
+        streak,
+      };
+    }) || [];
+
+  // Identify subjects needing attention
+  const subjectsNeedingAttention = subjectStats.filter(
+    (s) => s.percentage < s.subject.targetAttendance && s.percentage >= s.subject.targetAttendance - 15
+  );
+
+  const subjectsMayNotReach = subjectStats.filter((s) => !s.prediction.willReach && s.total > 0);
+
+  if (!subjects || !weeklySchedule || !allAttendance || !overallStats) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-96">
+          <div className="animate-pulse text-muted-foreground">Loading...</div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  return (
+    <AppLayout>
+      <div className="max-w-7xl mx-auto space-y-8 fade-in">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-[oklch(var(--gradient-2))] to-[oklch(var(--gradient-3))] bg-clip-text text-transparent">
+              Dashboard
+            </h1>
+            <p className="text-muted-foreground mt-1">{format(today, "EEEE, MMMM do")}</p>
+          </div>
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="flex items-center gap-3"
+          >
+            <Badge
+              variant={overallStats.percentage >= 75 ? "default" : "destructive"}
+              className="text-lg px-4 py-2"
+            >
+              OVERALL {Math.round(overallStats.percentage)}%
+            </Badge>
+          </motion.div>
+        </div>
+
+        {/* This Week's Schedule */}
+        <section>
+          <h2 className="text-2xl font-semibold mb-4">This Week's Schedule</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+            {weekDates.map((date, index) => {
+              const dateStr = formatDate(date);
+              const dayClasses = weeklySchedule[date.getDay()] || [];
+              const isTodayDate = isToday(date);
+
+              return (
+                <motion.div
+                  key={dateStr}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <Card
+                    className={`hover-lift ${isTodayDate ? "ring-2 ring-primary" : ""}`}
+                  >
+                    <CardHeader className="p-3 pb-2">
+                      <CardTitle className="text-sm font-medium text-center">
+                        {getShortDayName(date)}
+                        <div className="text-xs text-muted-foreground">
+                          {format(date, "MMM d")}
+                        </div>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-3 pt-0 space-y-2">
+                      {dayClasses.length === 0 ? (
+                        <p className="text-xs text-muted-foreground text-center">No classes</p>
+                      ) : (
+                        dayClasses.slice(0, 3).map((cls) => {
+                          const attendance = allAttendance?.find(
+                            (a) => a.classId === cls._id && a.date === dateStr
+                          );
+
+                          return (
+                            <div
+                              key={cls._id}
+                              className="text-xs p-2 bg-muted rounded-lg space-y-1"
+                            >
+                              <div className="font-medium truncate">
+                                {cls.subject?.name || "Unknown"}
+                              </div>
+                              <Badge variant="outline" className="text-[10px] h-4 px-1">
+                                {cls.type}
+                              </Badge>
+                              <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                <Clock size={10} />
+                                {cls.startTime} – {cls.endTime}
+                              </div>
+                              {attendance && (
+                                <div className="flex justify-center mt-1">
+                                  {attendance.status === "present" ? (
+                                    <Check size={14} className="text-green-600" />
+                                  ) : (
+                                    <X size={14} className="text-red-600" />
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })
+                      )}
+                      {dayClasses.length > 3 && (
+                        <p className="text-[10px] text-muted-foreground text-center">
+                          +{dayClasses.length - 3} more
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Today's Schedule */}
+        <section>
+          <h2 className="text-2xl font-semibold mb-4">Today's Schedule</h2>
+          {todayClasses.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <p className="text-muted-foreground">No classes scheduled for today</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {todayClasses.map((cls, index) => {
+                const attendance = allAttendance?.find(
+                  (a) => a.classId === cls._id && a.date === todayStr
+                );
+
+                return (
+                  <motion.div
+                    key={cls._id}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    <Card className="hover-lift">
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <div>
+                            <h3 className="font-semibold text-lg">
+                              {cls.subject?.name || "Unknown"}
+                            </h3>
+                            <Badge variant="secondary" className="mt-1">
+                              {cls.type}
+                            </Badge>
+                          </div>
+                          <div className="text-right text-sm">
+                            <div className="font-medium">{cls.startTime}</div>
+                            <div className="text-muted-foreground">{cls.endTime}</div>
+                          </div>
+                        </div>
+
+                        {attendance ? (
+                          <div className="flex items-center justify-center gap-2 p-3 bg-muted rounded-lg">
+                            {attendance.status === "present" ? (
+                              <>
+                                <Check className="text-green-600" />
+                                <span className="font-medium">Marked Present</span>
+                              </>
+                            ) : (
+                              <>
+                                <X className="text-red-600" />
+                                <span className="font-medium">Marked Absent</span>
+                              </>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-2 gap-2">
+                            <Button
+                              onClick={() =>
+                                handleMarkAttendance(
+                                  cls.subjectId,
+                                  cls._id,
+                                  todayStr,
+                                  "present"
+                                )
+                              }
+                              className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
+                            >
+                              <Check size={16} className="mr-1" />
+                              Present
+                            </Button>
+                            <Button
+                              onClick={() =>
+                                handleMarkAttendance(cls.subjectId, cls._id, todayStr, "absent")
+                              }
+                              variant="destructive"
+                            >
+                              <X size={16} className="mr-1" />
+                              Absent
+                            </Button>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* Smart Suggestions */}
+        {(subjectsNeedingAttention.length > 0 || subjectsMayNotReach.length > 0) && (
+          <section>
+            <h2 className="text-2xl font-semibold mb-4">Smart Suggestions</h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              {subjectsNeedingAttention.length > 0 && (
+                <Card className="border-l-4 border-l-yellow-500">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-yellow-700">
+                      <AlertTriangle size={20} />
+                      Subjects Needing Attention
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {subjectsNeedingAttention.map((stat) => (
+                      <div
+                        key={stat.subject._id}
+                        className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg"
+                      >
+                        <span className="font-medium">{stat.subject.name}</span>
+                        <Badge variant="outline" className="bg-yellow-100 text-yellow-700">
+                          {Math.round(stat.percentage)}%
+                        </Badge>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+
+              {subjectsMayNotReach.length > 0 && (
+                <Card className="border-l-4 border-l-red-500">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-red-700">
+                      <TrendingUp size={20} />
+                      May Not Reach Target
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {subjectsMayNotReach.map((stat) => (
+                      <div key={stat.subject._id} className="p-3 bg-red-50 rounded-lg space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">{stat.subject.name}</span>
+                          <Badge variant="destructive">
+                            {Math.round(stat.prediction.predicted)}%
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-red-600">
+                          Predicted: {Math.round(stat.prediction.predicted)}% (Target:{" "}
+                          {stat.subject.targetAttendance}%)
+                        </p>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* Your Subjects */}
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-semibold">Your Subjects</h2>
+            <Button
+              size="sm"
+              className="bg-gradient-to-r from-[oklch(var(--gradient-2))] to-[oklch(var(--gradient-3))]"
+            >
+              <Plus size={16} className="mr-1" />
+              Add Subject
+            </Button>
+          </div>
+
+          {subjectStats.length === 0 ? (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <p className="text-muted-foreground mb-4">No subjects added yet</p>
+                <Button>Add Your First Subject</Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {subjectStats.map((stat, index) => (
+                <motion.div
+                  key={stat.subject._id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <Card className="hover-lift">
+                    <CardHeader>
+                      <CardTitle className="text-lg">{stat.subject.name}</CardTitle>
+                      <p className="text-sm text-muted-foreground">{stat.subject.code}</p>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {/* Progress Ring */}
+                      <div className="flex justify-center">
+                        <ProgressRing
+                          percentage={stat.percentage}
+                          targetPercentage={stat.subject.targetAttendance}
+                          size={100}
+                          strokeWidth={8}
+                        />
+                      </div>
+
+                      {/* Progress Bar */}
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            {stat.present} / {stat.total} classes
+                          </span>
+                          <span className="font-medium">
+                            Target: {stat.subject.targetAttendance}%
+                          </span>
+                        </div>
+                        <Progress
+                          value={stat.percentage}
+                          className="h-2"
+                        />
+                      </div>
+
+                      {/* Prediction */}
+                      <div className="text-sm text-center p-2 bg-muted rounded-lg">
+                        <p className="text-muted-foreground">If you maintain pace:</p>
+                        <p
+                          className={`font-medium ${stat.prediction.willReach ? "text-green-600" : "text-red-600"}`}
+                        >
+                          {Math.round(stat.prediction.predicted)}%
+                        </p>
+                      </div>
+
+                      {/* Alert */}
+                      {stat.classesNeeded > 0 && (
+                        <div className="text-sm p-2 bg-red-50 text-red-700 rounded-lg text-center">
+                          Attend {stat.classesNeeded} more{" "}
+                          {stat.classesNeeded === 1 ? "class" : "classes"}
+                        </div>
+                      )}
+
+                      {/* Streak */}
+                      {stat.streak > 0 && (
+                        <div className="flex items-center justify-center gap-2 text-sm p-2 bg-gradient-to-r from-orange-50 to-red-50 rounded-lg">
+                          <Flame className="text-orange-500" size={16} />
+                          <span className="font-medium text-orange-700">
+                            {stat.streak} day streak!
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Stats */}
+                      <div className="grid grid-cols-2 gap-2 pt-2 border-t">
+                        <div className="text-center">
+                          <p className="text-2xl font-bold text-red-600">{stat.absent}</p>
+                          <p className="text-xs text-muted-foreground">Absent</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-2xl font-bold">{stat.total}</p>
+                          <p className="text-xs text-muted-foreground">Total</p>
+                        </div>
+                      </div>
+
+                      {/* Recent Attendance */}
+                      <Collapsible
+                        open={expandedSubjects.has(stat.subject._id)}
+                        onOpenChange={() => toggleSubjectExpansion(stat.subject._id)}
+                      >
+                        <CollapsibleTrigger asChild>
+                          <Button variant="ghost" size="sm" className="w-full">
+                            Recent Attendance
+                            <ChevronDown
+                              size={16}
+                              className={`ml-2 transition-transform ${expandedSubjects.has(stat.subject._id) ? "rotate-180" : ""}`}
+                            />
+                          </Button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-2 space-y-1">
+                          {allAttendance
+                            ?.filter((a) => a.subjectId === stat.subject._id)
+                            .sort((a, b) => b.date.localeCompare(a.date))
+                            .slice(0, 5)
+                            .map((record) => (
+                              <div
+                                key={record._id}
+                                className="flex items-center justify-between text-xs p-2 bg-muted rounded"
+                              >
+                                <span>{format(parseISO(record.date), "MMM d, yyyy")}</span>
+                                {record.status === "present" ? (
+                                  <Check size={14} className="text-green-600" />
+                                ) : (
+                                  <X size={14} className="text-red-600" />
+                                )}
+                              </div>
+                            ))}
+                        </CollapsibleContent>
+                      </Collapsible>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+    </AppLayout>
+  );
+}

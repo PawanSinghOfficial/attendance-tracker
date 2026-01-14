@@ -1,3 +1,141 @@
+# Student Attendance Tracker
+
+A modern, responsive web application for managing student attendance with smart suggestions, predictive analytics, and beautiful gradient mesh design.
+
+## Features
+
+### Dashboard
+- **Weekly Schedule Overview**: View all classes for the current week at a glance
+- **Today's Schedule**: Quick access to mark attendance for today's classes
+- **Overall Attendance Badge**: Real-time overall attendance percentage with color-coded status
+- **Smart Suggestions**:
+  - Subjects needing attention (below target but recoverable)
+  - Subjects that may not reach target (based on predictive analytics)
+- **Subject Cards**: Comprehensive view of each subject with:
+  - Circular progress ring showing attendance percentage
+  - Progress bar with present/total classes
+  - Predictive attendance percentage
+  - Attendance streak for perfect attendance
+  - Recent attendance history
+  - Target vs actual comparison
+
+### Subjects & Schedule Management
+- **Subject Management**:
+  - Add new subjects with name, code, target percentage, and color
+  - View all subjects with attendance statistics
+  - Delete subjects (cascades to delete related classes and attendance)
+- **Weekly Schedule**:
+  - Add classes to any day of the week
+  - Configure class time, type (Lecture/Lab/Tutorial)
+  - Mark attendance directly from the schedule
+  - Delete classes
+
+### Settings
+- **Notifications Tab**:
+  - Pre-class prompts toggle
+  - Configurable prompt offset (5-60 minutes)
+  - Browser notifications toggle
+  - Notification sound toggle
+- **Semester Tab**:
+  - Set semester start and end dates
+  - Configure default target attendance percentage
+- **Holidays Tab**:
+  - Add holidays with name and date
+  - View all marked holidays
+  - Delete holidays
+- **Export Data**: Download all your data as JSON
+
+## Smart Features
+
+### Predictive Analytics
+The app calculates predicted final attendance based on:
+- Current attendance rate
+- Number of remaining classes in the semester
+- Historical attendance patterns
+
+### Attendance Calculations
+- **Classes Needed**: Calculates how many more classes you need to attend to reach your target
+- **Streak Tracking**: Tracks consecutive days of 100% attendance
+- **Color-Coded Status**: Visual indicators for at-risk, warning, and good attendance
+
+### Real-time Updates
+- All data updates instantly across all pages
+- Convex backend provides real-time synchronization
+- No manual refresh needed
+
+## Design
+
+### Gradient Mesh Theme
+- Soft pastel colors with flowing gradients
+- Smooth animations and transitions
+- Organic shapes and radial gradients
+- Responsive design for desktop, tablet, and mobile
+
+### UI Components
+- Clean, modern card-based layout
+- Circular progress rings with animations
+- Hover effects and smooth transitions
+- Icon-only sidebar for maximum screen space
+
+## Getting Started
+
+The app includes test data that is automatically loaded on first run:
+- 4 sample subjects (Mathematics, Physics, Chemistry, Computer Science)
+- 9 scheduled classes throughout the week
+- 2 weeks of sample attendance data
+- 2 sample holidays
+- Default settings configured
+
+## Usage
+
+### Adding Subjects
+1. Go to Subjects page
+2. Click "Add" in the subjects panel
+3. Enter subject name, code, target percentage, and select a color
+4. Click "Create Subject"
+
+### Scheduling Classes
+1. Go to Subjects page
+2. Select a day from the tabs
+3. Click "Add Class"
+4. Select subject, set time, and choose type
+5. Click "Add Class"
+
+### Marking Attendance
+You can mark attendance from:
+- **Dashboard**: Today's Schedule section
+- **Subjects Page**: For today's classes in the schedule view
+- Simply click "Present" or "Absent" for each class
+
+### Managing Settings
+1. Go to Settings page
+2. Use tabs to navigate between Notifications, Semester, and Holidays
+3. Make your changes
+4. Click "Save Changes"
+
+### Exporting Data
+Click "Export Data" button in any Settings tab to download all your data as JSON.
+
+## Color Coding
+
+- **Green**: Good attendance (at or above target)
+- **Yellow**: Warning (slightly below target, recoverable)
+- **Red**: Danger (significantly below target or predicted to miss target)
+- **Blue**: Primary actions and current day indicator
+
+## Database Schema
+
+### Tables
+- **subjects**: Subject information (name, code, target, color)
+- **classes**: Scheduled classes (subject, day, time, type)
+- **attendance**: Attendance records (subject, date, status)
+- **holidays**: Marked holidays (name, date)
+- **settings**: App-wide settings (semester dates, notification preferences)
+
+All data is stored in Convex and syncs in real-time.
+
+---
+
 ## Overview
 
 This project uses the following tech stack:

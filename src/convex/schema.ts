@@ -34,10 +34,51 @@ const schema = defineSchema(
 
     // add other tables here
 
-    // tableName: defineTable({
-    //   ...
-    //   // table fields
-    // }).index("by_field", ["field"])
+    // Subjects table
+    subjects: defineTable({
+      name: v.string(), // Subject name (e.g., "Mathematics")
+      code: v.string(), // Subject code (e.g., "MATH101")
+      targetAttendance: v.number(), // Target attendance percentage (e.g., 75)
+      color: v.string(), // Color for UI (hex code)
+    }),
+
+    // Classes/Schedule table
+    classes: defineTable({
+      subjectId: v.id("subjects"),
+      dayOfWeek: v.number(), // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+      startTime: v.string(), // Format: "HH:mm" (e.g., "09:00")
+      endTime: v.string(), // Format: "HH:mm" (e.g., "10:00")
+      type: v.string(), // "LECTURE", "LAB", "TUTORIAL"
+    }).index("by_subject", ["subjectId"])
+      .index("by_day", ["dayOfWeek"]),
+
+    // Attendance records table
+    attendance: defineTable({
+      subjectId: v.id("subjects"),
+      classId: v.optional(v.id("classes")), // Optional link to scheduled class
+      date: v.string(), // Format: "YYYY-MM-DD"
+      status: v.union(v.literal("present"), v.literal("absent")),
+      timestamp: v.number(), // Unix timestamp when marked
+    }).index("by_subject", ["subjectId"])
+      .index("by_date", ["date"])
+      .index("by_subject_and_date", ["subjectId", "date"]),
+
+    // Holidays table
+    holidays: defineTable({
+      name: v.string(), // Holiday name (e.g., "Christmas")
+      date: v.string(), // Format: "YYYY-MM-DD"
+    }).index("by_date", ["date"]),
+
+    // Settings table (single row for app-wide settings)
+    settings: defineTable({
+      semesterStartDate: v.optional(v.string()), // Format: "YYYY-MM-DD"
+      semesterEndDate: v.optional(v.string()), // Format: "YYYY-MM-DD"
+      defaultTargetAttendance: v.number(), // Default target percentage
+      preClassPrompts: v.boolean(), // Enable/disable pre-class prompts
+      promptOffsetMinutes: v.number(), // Minutes before class to prompt
+      browserNotifications: v.boolean(), // Enable/disable browser notifications
+      notificationSound: v.boolean(), // Enable/disable notification sound
+    }),
   },
   {
     schemaValidation: false,
