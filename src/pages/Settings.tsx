@@ -13,6 +13,7 @@ import { Bell, Calendar, Trash2, Download, Save } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
+import { SettingsSkeleton } from "@/components/LoadingSkeleton";
 
 export default function Settings() {
   const settings = useQuery(api.settings.get);
@@ -132,9 +133,7 @@ export default function Settings() {
   if (!settings) {
     return (
       <AppLayout>
-        <div className="flex items-center justify-center h-96">
-          <div className="animate-pulse text-muted-foreground">Loading...</div>
-        </div>
+        <SettingsSkeleton />
       </AppLayout>
     );
   }

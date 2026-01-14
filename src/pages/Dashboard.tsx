@@ -26,6 +26,9 @@ import { ChevronDown } from "lucide-react";
 import { Id } from "@/convex/_generated/dataModel";
 import { CalendarView } from "@/components/CalendarView";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
+import { DashboardSkeleton } from "@/components/LoadingSkeleton";
+import { QuickActionsButton } from "@/components/QuickActionsButton";
+import { ClassReminders } from "@/components/ClassReminders";
 
 export default function Dashboard() {
   const subjects = useQuery(api.subjects.list);
@@ -55,9 +58,23 @@ export default function Dashboard() {
         date,
         status,
       });
-      toast.success(`Marked as ${status}`);
+      toast.success(
+        <div className="flex items-center gap-2">
+          {status === "present" ? (
+            <Check className="text-green-600" size={18} />
+          ) : (
+            <X className="text-red-600" size={18} />
+          )}
+          <span>Marked as {status}</span>
+        </div>
+      );
     } catch (error) {
-      toast.error("Failed to mark attendance");
+      toast.error(
+        <div className="flex items-center gap-2">
+          <AlertTriangle className="text-red-600" size={18} />
+          <span>Failed to mark attendance</span>
+        </div>
+      );
     }
   };
 
@@ -127,9 +144,7 @@ export default function Dashboard() {
   if (!subjects || !weeklySchedule || !allAttendance || !overallStats) {
     return (
       <AppLayout>
-        <div className="flex items-center justify-center h-96">
-          <div className="animate-pulse text-muted-foreground">Loading...</div>
-        </div>
+        <DashboardSkeleton />
       </AppLayout>
     );
   }
@@ -573,6 +588,8 @@ export default function Dashboard() {
           )}
         </section>
       </div>
+      <QuickActionsButton />
+      <ClassReminders />
     </AppLayout>
   );
 }

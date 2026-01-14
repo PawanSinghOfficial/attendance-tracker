@@ -21,6 +21,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Id } from "@/convex/_generated/dataModel";
 import { formatDate } from "@/lib/attendance-utils";
+import { SubjectsSkeleton } from "@/components/LoadingSkeleton";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -158,9 +159,7 @@ export default function Subjects() {
   if (!subjects || !weeklySchedule) {
     return (
       <AppLayout>
-        <div className="flex items-center justify-center h-96">
-          <div className="animate-pulse text-muted-foreground">Loading...</div>
-        </div>
+        <SubjectsSkeleton />
       </AppLayout>
     );
   }

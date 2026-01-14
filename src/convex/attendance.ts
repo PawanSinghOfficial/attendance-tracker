@@ -55,6 +55,7 @@ export const mark = mutation({
     classId: v.optional(v.id("classes")),
     date: v.string(),
     status: v.union(v.literal("present"), v.literal("absent")),
+    note: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Check if attendance already exists for this subject on this date
@@ -71,6 +72,7 @@ export const mark = mutation({
         status: args.status,
         timestamp: Date.now(),
         classId: args.classId,
+        note: args.note,
       });
       return existing._id;
     } else {
@@ -81,6 +83,7 @@ export const mark = mutation({
         date: args.date,
         status: args.status,
         timestamp: Date.now(),
+        note: args.note,
       });
     }
   },

@@ -59,6 +59,7 @@ const schema = defineSchema(
       date: v.string(), // Format: "YYYY-MM-DD"
       status: v.union(v.literal("present"), v.literal("absent")),
       timestamp: v.number(), // Unix timestamp when marked
+      note: v.optional(v.string()), // Optional note/reason for absence
     }).index("by_subject", ["subjectId"])
       .index("by_date", ["date"])
       .index("by_subject_and_date", ["subjectId", "date"]),
