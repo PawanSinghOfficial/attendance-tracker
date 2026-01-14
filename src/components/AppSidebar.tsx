@@ -1,5 +1,5 @@
-import { LayoutDashboard, BookOpen, Settings } from "lucide-react";
-import { Link, useLocation } from "react-router";
+import { LayoutDashboard, BookOpen, Settings, LogOut, Mail, User } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -13,6 +13,9 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
+import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
 
 const navItems = [
   {
@@ -29,6 +32,8 @@ const navItems = [
 
 export function AppSidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
   const [userInfo, setUserInfo] = useState({
     emoji: "🎓",
     name: localStorage.getItem("userName") || "Student",
@@ -44,6 +49,18 @@ export function AppSidebar() {
     localStorage.setItem("userBranch", tempInfo.branch);
     localStorage.setItem("userYear", tempInfo.year);
     setIsEditOpen(false);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast.success("Logged out successfully");
+      setIsEditOpen(false);
+      navigate("/auth");
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("Failed to log out");
+    }
   };
 
   return (
@@ -64,60 +81,116 @@ export function AppSidebar() {
             {userInfo.emoji}
           </motion.button>
         </DialogTrigger>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Edit Profile</DialogTitle>
+            <DialogTitle>Profile</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <Label htmlFor="emoji">Emoji</Label>
-              <Input
-                id="emoji"
-                value={tempInfo.emoji}
-                onChange={(e) => setTempInfo({ ...tempInfo, emoji: e.target.value })}
-                placeholder="🎓"
-                maxLength={2}
-              />
+            {/* Account Info */}
+            <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[oklch(var(--gradient-2))] to-[oklch(var(--gradient-3))] flex items-center justify-center text-2xl">
+                  {userInfo.emoji}
+                </div>
+                <div className="flex-1">
+                  <div className="font-semibold flex items-center gap-2">
+                    <User size={14} className="text-muted-foreground" />
+                    {userInfo.name}
+                  </div>
+                  {user?.email && (
+                    <div className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
+                      <Mail size={14} />
+                      {user.email}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <Separator />
+              <div className="text-sm space-y-1">
+                <div className="text-muted-foreground">
+                  <span className="font-medium">Branch:</span> {userInfo.branch}
+                </div>
+                <div className="text-muted-foreground">
+                  <span className="font-medium">Year:</span> {userInfo.year}
+                </div>
+              </div>
             </div>
-            <div>
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                value={tempInfo.name}
-                onChange={(e) => setTempInfo({ ...tempInfo, name: e.target.value })}
-                placeholder="Your Name"
-              />
+
+            <Separator />
+
+            {/* Edit Profile Fields */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold">Edit Profile Info</h3>
+              <div>
+                <Label htmlFor="emoji" className="text-xs">Emoji</Label>
+                <Input
+                  id="emoji"
+                  value={tempInfo.emoji}
+                  onChange={(e) => setTempInfo({ ...tempInfo, emoji: e.target.value })}
+                  placeholder="🎓"
+                  maxLength={2}
+                  className="h-9"
+                />
+              </div>
+              <div>
+                <Label htmlFor="name" className="text-xs">Name</Label>
+                <Input
+                  id="name"
+                  value={tempInfo.name}
+                  onChange={(e) => setTempInfo({ ...tempInfo, name: e.target.value })}
+                  placeholder="Your Name"
+                  className="h-9"
+                />
+              </div>
+              <div>
+                <Label htmlFor="branch" className="text-xs">Branch/Course</Label>
+                <Input
+                  id="branch"
+                  value={tempInfo.branch}
+                  onChange={(e) => setTempInfo({ ...tempInfo, branch: e.target.value })}
+                  placeholder="Computer Science"
+                  className="h-9"
+                />
+              </div>
+              <div>
+                <Label htmlFor="year" className="text-xs">Year</Label>
+                <Input
+                  id="year"
+                  value={tempInfo.year}
+                  onChange={(e) => setTempInfo({ ...tempInfo, year: e.target.value })}
+                  placeholder="3rd Year"
+                  className="h-9"
+                />
+              </div>
             </div>
-            <div>
-              <Label htmlFor="branch">Branch/Course</Label>
-              <Input
-                id="branch"
-                value={tempInfo.branch}
-                onChange={(e) => setTempInfo({ ...tempInfo, branch: e.target.value })}
-                placeholder="Computer Science"
-              />
-            </div>
-            <div>
-              <Label htmlFor="year">Year</Label>
-              <Input
-                id="year"
-                value={tempInfo.year}
-                onChange={(e) => setTempInfo({ ...tempInfo, year: e.target.value })}
-                placeholder="3rd Year"
-              />
-            </div>
-            <div className="flex gap-2 pt-2">
-              <Button onClick={handleSave} className="flex-1">
-                Save
-              </Button>
+
+            <Separator />
+
+            {/* Action Buttons */}
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Button onClick={handleSave} className="flex-1" size="sm">
+                  Save Changes
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setTempInfo(userInfo);
+                    setIsEditOpen(false);
+                  }}
+                  size="sm"
+                >
+                  Cancel
+                </Button>
+              </div>
               <Button
-                variant="outline"
-                onClick={() => {
-                  setTempInfo(userInfo);
-                  setIsEditOpen(false);
-                }}
+                variant="destructive"
+                onClick={handleLogout}
+                className="w-full"
+                size="sm"
               >
-                Cancel
+                <LogOut size={16} className="mr-2" />
+                Log Out
               </Button>
             </div>
           </div>
