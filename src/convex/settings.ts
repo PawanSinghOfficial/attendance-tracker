@@ -1,11 +1,27 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
-// Get settings (returns first settings record or creates default)
+// Get settings (returns first settings record or null if not initialized)
 export const get = query({
   args: {},
   handler: async (ctx) => {
     const settings = await ctx.db.query("settings").first();
+
+    // If no settings exist, return a default object so the UI can still render
+    if (!settings) {
+      return {
+        _id: "" as any,
+        _creationTime: Date.now(),
+        semesterStartDate: undefined,
+        semesterEndDate: undefined,
+        defaultTargetAttendance: 75,
+        preClassPrompts: true,
+        promptOffsetMinutes: 10,
+        browserNotifications: true,
+        notificationSound: true,
+      };
+    }
+
     return settings;
   },
 });

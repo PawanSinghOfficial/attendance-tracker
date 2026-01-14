@@ -159,9 +159,11 @@ export default function Subjects() {
 
   if (!subjects || !weeklySchedule) {
     return (
-      <AppLayout>
-        <SubjectsSkeleton />
-      </AppLayout>
+      <PageTransition>
+        <AppLayout>
+          <SubjectsSkeleton />
+        </AppLayout>
+      </PageTransition>
     );
   }
 

@@ -133,9 +133,11 @@ export default function Settings() {
 
   if (!settings) {
     return (
-      <AppLayout>
-        <SettingsSkeleton />
-      </AppLayout>
+      <PageTransition>
+        <AppLayout>
+          <SettingsSkeleton />
+        </AppLayout>
+      </PageTransition>
     );
   }
 

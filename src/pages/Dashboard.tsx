@@ -145,9 +145,11 @@ export default function Dashboard() {
 
   if (!subjects || !weeklySchedule || !allAttendance || !overallStats) {
     return (
-      <AppLayout>
-        <DashboardSkeleton />
-      </AppLayout>
+      <PageTransition>
+        <AppLayout>
+          <DashboardSkeleton />
+        </AppLayout>
+      </PageTransition>
     );
   }
 
