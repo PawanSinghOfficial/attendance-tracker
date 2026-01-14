@@ -352,6 +352,125 @@ export default function Dashboard() {
           )}
         </section>
 
+        {/* Upcoming Days - Next 6 Days */}
+        <section>
+          <h2 className="text-2xl font-semibold mb-4">Upcoming Days</h2>
+          <div className="space-y-6">
+            {[1, 2, 3, 4, 5, 6].map((dayOffset) => {
+              const upcomingDate = new Date(today);
+              upcomingDate.setDate(upcomingDate.getDate() + dayOffset);
+              const upcomingDateStr = formatDate(upcomingDate);
+              const upcomingDayOfWeek = upcomingDate.getDay();
+              const upcomingClasses = weeklySchedule?.[upcomingDayOfWeek] || [];
+
+              if (upcomingClasses.length === 0) return null;
+
+              return (
+                <Card key={upcomingDateStr}>
+                  <CardHeader>
+                    <CardTitle className="text-lg">
+                      {format(upcomingDate, "EEEE, MMM d")}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                      {upcomingClasses.map((cls) => {
+                        const attendance = allAttendance?.find(
+                          (a) => a.classId === cls._id && a.date === upcomingDateStr
+                        );
+
+                        return (
+                          <div
+                            key={cls._id}
+                            className="p-4 bg-muted rounded-lg"
+                          >
+                            <div className="flex items-start justify-between mb-3">
+                              <div>
+                                <h4 className="font-medium">
+                                  {cls.subject?.name || "Unknown"}
+                                </h4>
+                                <Badge variant="secondary" className="mt-1 text-xs">
+                                  {cls.type}
+                                </Badge>
+                              </div>
+                              <div className="text-right text-sm">
+                                <div className="font-medium">{cls.startTime}</div>
+                                <div className="text-muted-foreground text-xs">{cls.endTime}</div>
+                              </div>
+                            </div>
+
+                            {attendance ? (
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-center gap-2 p-2 bg-background rounded text-sm">
+                                  {attendance.status === "present" ? (
+                                    <>
+                                      <Check className="text-green-600" size={16} />
+                                      <span>Present</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <X className="text-red-600" size={16} />
+                                      <span>Absent</span>
+                                    </>
+                                  )}
+                                </div>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-full text-xs"
+                                  onClick={() =>
+                                    handleMarkAttendance(
+                                      cls.subjectId,
+                                      cls._id,
+                                      upcomingDateStr,
+                                      attendance.status === "present" ? "absent" : "present"
+                                    )
+                                  }
+                                >
+                                  Change to {attendance.status === "present" ? "Absent" : "Present"}
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="grid grid-cols-2 gap-2">
+                                <Button
+                                  onClick={() =>
+                                    handleMarkAttendance(
+                                      cls.subjectId,
+                                      cls._id,
+                                      upcomingDateStr,
+                                      "present"
+                                    )
+                                  }
+                                  size="sm"
+                                  className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white text-xs"
+                                >
+                                  <Check size={14} className="mr-1" />
+                                  Present
+                                </Button>
+                                <Button
+                                  onClick={() =>
+                                    handleMarkAttendance(cls.subjectId, cls._id, upcomingDateStr, "absent")
+                                  }
+                                  variant="destructive"
+                                  size="sm"
+                                  className="text-xs"
+                                >
+                                  <X size={14} className="mr-1" />
+                                  Absent
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </section>
+
         {/* This Week's Schedule */}
         <section>
           <div className="flex items-center justify-between mb-4">

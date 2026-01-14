@@ -32,10 +32,6 @@ const TIME_SLOTS = [
   "12:00 PM",
   "01:00 PM",
   "02:00 PM",
-  "03:00 PM",
-  "04:00 PM",
-  "05:00 PM",
-  "06:00 PM",
 ];
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
