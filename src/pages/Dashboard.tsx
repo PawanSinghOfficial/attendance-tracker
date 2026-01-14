@@ -18,12 +18,14 @@ import {
   willReachTarget,
   calculateStreak,
 } from "@/lib/attendance-utils";
-import { Check, X, Clock, AlertTriangle, TrendingUp, Flame, Plus } from "lucide-react";
+import { Check, X, Clock, AlertTriangle, TrendingUp, Flame, Plus, Calendar as CalendarIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
 import { Id } from "@/convex/_generated/dataModel";
+import { CalendarView } from "@/components/CalendarView";
+import { AnimatedCounter } from "@/components/AnimatedCounter";
 
 export default function Dashboard() {
   const subjects = useQuery(api.subjects.list);
@@ -34,6 +36,7 @@ export default function Dashboard() {
   const markAttendance = useMutation(api.attendance.mark);
 
   const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set());
+  const [showCalendar, setShowCalendar] = useState(false);
 
   const today = new Date();
   const todayStr = formatDate(today);
@@ -147,14 +150,43 @@ export default function Dashboard() {
             animate={{ scale: 1, opacity: 1 }}
             className="flex items-center gap-3"
           >
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowCalendar(!showCalendar)}
+            >
+              <CalendarIcon size={16} className="mr-2" />
+              {showCalendar ? "Hide" : "Show"} Calendar
+            </Button>
             <Badge
               variant={overallStats.percentage >= 75 ? "default" : "destructive"}
               className="text-lg px-4 py-2"
             >
-              OVERALL {Math.round(overallStats.percentage)}%
+              OVERALL <AnimatedCounter value={overallStats.percentage} decimals={0} suffix="%" />
             </Badge>
           </motion.div>
         </div>
+
+        {/* Calendar View */}
+        {showCalendar && (
+          <motion.section
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle>Calendar View</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CalendarView
+                  attendance={allAttendance || []}
+                  subjects={subjects || []}
+                />
+              </CardContent>
+            </Card>
+          </motion.section>
+        )}
 
         {/* This Week's Schedule */}
         <section>
@@ -411,10 +443,21 @@ export default function Dashboard() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
                 >
-                  <Card className="hover-lift">
+                  <Card
+                    className="hover-lift border-l-4 transition-all"
+                    style={{ borderLeftColor: stat.subject.color }}
+                  >
                     <CardHeader>
-                      <CardTitle className="text-lg">{stat.subject.name}</CardTitle>
-                      <p className="text-sm text-muted-foreground">{stat.subject.code}</p>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="text-lg">{stat.subject.name}</CardTitle>
+                          <p className="text-sm text-muted-foreground">{stat.subject.code}</p>
+                        </div>
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: stat.subject.color }}
+                        />
+                      </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       {/* Progress Ring */}
@@ -424,6 +467,7 @@ export default function Dashboard() {
                           targetPercentage={stat.subject.targetAttendance}
                           size={100}
                           strokeWidth={8}
+                          color={stat.percentage >= stat.subject.targetAttendance ? stat.subject.color : undefined}
                         />
                       </div>
 
@@ -447,9 +491,9 @@ export default function Dashboard() {
                       <div className="text-sm text-center p-2 bg-muted rounded-lg">
                         <p className="text-muted-foreground">If you maintain pace:</p>
                         <p
-                          className={`font-medium ${stat.prediction.willReach ? "text-green-600" : "text-red-600"}`}
+                          className={`font-medium text-xl ${stat.prediction.willReach ? "text-green-600" : "text-red-600"}`}
                         >
-                          {Math.round(stat.prediction.predicted)}%
+                          <AnimatedCounter value={stat.prediction.predicted} decimals={0} suffix="%" />
                         </p>
                       </div>
 
@@ -474,11 +518,15 @@ export default function Dashboard() {
                       {/* Stats */}
                       <div className="grid grid-cols-2 gap-2 pt-2 border-t">
                         <div className="text-center">
-                          <p className="text-2xl font-bold text-red-600">{stat.absent}</p>
+                          <p className="text-2xl font-bold text-red-600">
+                            <AnimatedCounter value={stat.absent} decimals={0} />
+                          </p>
                           <p className="text-xs text-muted-foreground">Absent</p>
                         </div>
                         <div className="text-center">
-                          <p className="text-2xl font-bold">{stat.total}</p>
+                          <p className="text-2xl font-bold">
+                            <AnimatedCounter value={stat.total} decimals={0} />
+                          </p>
                           <p className="text-xs text-muted-foreground">Total</p>
                         </div>
                       </div>

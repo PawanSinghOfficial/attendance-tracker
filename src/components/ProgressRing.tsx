@@ -7,6 +7,7 @@ interface ProgressRingProps {
   showText?: boolean;
   targetPercentage?: number;
   className?: string;
+  color?: string;
 }
 
 export function ProgressRing({
@@ -16,6 +17,7 @@ export function ProgressRing({
   showText = true,
   targetPercentage,
   className = "",
+  color,
 }: ProgressRingProps) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -25,11 +27,11 @@ export function ProgressRing({
   const isLow = targetPercentage && percentage < targetPercentage;
   const isGood = !targetPercentage || percentage >= targetPercentage;
 
-  const strokeColor = isLow
+  const strokeColor = color || (isLow
     ? "oklch(var(--danger))"
     : isGood
       ? "oklch(var(--success))"
-      : "oklch(var(--chart-2))";
+      : "oklch(var(--chart-2))");
 
   return (
     <div className={`relative inline-flex items-center justify-center ${className}`}>
