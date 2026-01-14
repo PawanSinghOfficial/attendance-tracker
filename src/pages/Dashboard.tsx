@@ -29,6 +29,8 @@ import { AnimatedCounter } from "@/components/AnimatedCounter";
 import { DashboardSkeleton } from "@/components/LoadingSkeleton";
 import { QuickActionsButton } from "@/components/QuickActionsButton";
 import { ClassReminders } from "@/components/ClassReminders";
+import { WeeklySummary } from "@/components/WeeklySummary";
+import { PageTransition } from "@/components/PageTransition";
 
 export default function Dashboard() {
   const subjects = useQuery(api.subjects.list);
@@ -150,8 +152,9 @@ export default function Dashboard() {
   }
 
   return (
-    <AppLayout>
-      <div className="max-w-7xl mx-auto space-y-8 fade-in">
+    <PageTransition>
+      <AppLayout>
+        <div className="max-w-7xl mx-auto space-y-8 fade-in">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -202,6 +205,9 @@ export default function Dashboard() {
             </Card>
           </motion.section>
         )}
+
+        {/* Weekly Summary Widget */}
+        <WeeklySummary />
 
         {/* This Week's Schedule */}
         <section>
@@ -459,7 +465,7 @@ export default function Dashboard() {
                   transition={{ delay: index * 0.05 }}
                 >
                   <Card
-                    className="hover-lift border-l-4 transition-all"
+                    className={`hover-lift border-l-4 transition-all ${stat.percentage < stat.subject.targetAttendance ? "shake-warning" : ""}`}
                     style={{ borderLeftColor: stat.subject.color }}
                   >
                     <CardHeader>
@@ -590,6 +596,7 @@ export default function Dashboard() {
       </div>
       <QuickActionsButton />
       <ClassReminders />
-    </AppLayout>
+      </AppLayout>
+    </PageTransition>
   );
 }

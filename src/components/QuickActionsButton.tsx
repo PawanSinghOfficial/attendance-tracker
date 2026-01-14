@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, X, Check, XIcon, StickyNote } from "lucide-react";
+import { Plus, X, Check, XIcon, StickyNote, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +13,7 @@ import { Id } from "@/convex/_generated/dataModel";
 
 export function QuickActionsButton() {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedAction, setSelectedAction] = useState<"mark" | "note" | null>(null);
+  const [selectedAction, setSelectedAction] = useState<"mark" | "note" | "bulk" | null>(null);
   const [selectedClass, setSelectedClass] = useState<{ subjectId: Id<"subjects">; classId: Id<"classes">; name: string } | null>(null);
   const [note, setNote] = useState("");
 
@@ -72,6 +72,36 @@ export function QuickActionsButton() {
     }
   };
 
+  const handleBulkMarkAll = async (status: "present" | "absent") => {
+    try {
+      for (const cls of unmarkedClasses) {
+        await markAttendance({
+          subjectId: cls.subjectId,
+          classId: cls._id,
+          date: todayStr,
+          status,
+        });
+      }
+
+      toast.success(
+        <div className="flex items-center gap-2">
+          <Zap className="text-blue-600" size={18} />
+          <span>Marked all {unmarkedClasses.length} classes as {status}</span>
+        </div>
+      );
+
+      setIsOpen(false);
+      setSelectedAction(null);
+    } catch (error) {
+      toast.error(
+        <div className="flex items-center gap-2">
+          <XIcon className="text-red-600" size={18} />
+          <span>Failed to mark attendance</span>
+        </div>
+      );
+    }
+  };
+
   return (
     <>
       {/* Floating Action Button */}
@@ -84,7 +114,7 @@ export function QuickActionsButton() {
         <Button
           size="lg"
           onClick={() => setIsOpen(!isOpen)}
-          className="h-14 w-14 rounded-full shadow-lg bg-gradient-to-br from-[oklch(var(--gradient-2))] to-[oklch(var(--gradient-3))] hover:shadow-xl transition-shadow"
+          className={`h-14 w-14 rounded-full shadow-lg bg-gradient-to-br from-[oklch(var(--gradient-2))] to-[oklch(var(--gradient-3))] hover:shadow-xl transition-shadow ${unmarkedClasses.length > 0 ? "pulse-attention" : ""}`}
         >
           <motion.div
             animate={{ rotate: isOpen ? 45 : 0 }}
@@ -111,19 +141,66 @@ export function QuickActionsButton() {
                     <h3 className="font-semibold mb-3">Quick Actions</h3>
 
                     {unmarkedClasses.length > 0 ? (
-                      <Button
-                        variant="outline"
-                        className="w-full justify-start"
-                        onClick={() => setSelectedAction("mark")}
-                      >
-                        <Check size={18} className="mr-2" />
-                        Mark Today's Attendance ({unmarkedClasses.length})
-                      </Button>
+                      <>
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start"
+                          onClick={() => setSelectedAction("mark")}
+                        >
+                          <Check size={18} className="mr-2" />
+                          Mark Today's Attendance ({unmarkedClasses.length})
+                        </Button>
+
+                        {unmarkedClasses.length > 1 && (
+                          <Button
+                            variant="outline"
+                            className="w-full justify-start"
+                            onClick={() => setSelectedAction("bulk")}
+                          >
+                            <Zap size={18} className="mr-2" />
+                            Mark All at Once
+                          </Button>
+                        )}
+                      </>
                     ) : (
                       <p className="text-sm text-muted-foreground text-center py-4">
                         All classes marked for today!
                       </p>
                     )}
+                  </div>
+                ) : selectedAction === "bulk" ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-semibold">Mark All Classes</h3>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedAction(null)}
+                      >
+                        <X size={16} />
+                      </Button>
+                    </div>
+
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Mark all {unmarkedClasses.length} classes as:
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        onClick={() => handleBulkMarkAll("present")}
+                        className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                      >
+                        <Check size={16} className="mr-1" />
+                        All Present
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={() => handleBulkMarkAll("absent")}
+                      >
+                        <XIcon size={16} className="mr-1" />
+                        All Absent
+                      </Button>
+                    </div>
                   </div>
                 ) : selectedAction === "mark" && !selectedClass ? (
                   <div className="space-y-3">

@@ -6,6 +6,7 @@ import { ConvexReactClient, ConvexProvider } from "convex/react";
 import { StrictMode, useEffect, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router";
+import { AnimatePresence } from "framer-motion";
 import "./index.css";
 import "./types/global.d.ts";
 
@@ -53,6 +54,23 @@ function RouteSyncer() {
   return null;
 }
 
+function AnimatedRoutes() {
+  const location = useLocation();
+
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<Landing />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/subjects" element={<Subjects />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/auth" element={<AuthPage redirectAfterAuth="/dashboard" />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </AnimatePresence>
+  );
+}
+
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -63,14 +81,7 @@ createRoot(document.getElementById("root")!).render(
           <BrowserRouter>
             <RouteSyncer />
             <Suspense fallback={<RouteLoading />}>
-              <Routes>
-                <Route path="/" element={<Landing />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/subjects" element={<Subjects />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/auth" element={<AuthPage redirectAfterAuth="/dashboard" />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              <AnimatedRoutes />
             </Suspense>
           </BrowserRouter>
           <Toaster />

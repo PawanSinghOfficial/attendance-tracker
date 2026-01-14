@@ -109,7 +109,7 @@ export function ClassReminders() {
             exit={{ opacity: 0, x: 100, scale: 0.95 }}
             transition={{ type: "spring", stiffness: 200, damping: 20 }}
           >
-            <Card className="p-4 shadow-lg border-l-4 border-l-blue-500 bg-gradient-to-br from-blue-50 to-cyan-50">
+            <Card className={`p-4 shadow-lg border-l-4 border-l-blue-500 bg-gradient-to-br from-blue-50 to-cyan-50 ${cls.minutesUntil <= 10 ? "pulse-attention" : ""}`}>
               <div className="flex items-start gap-3">
                 <div className="p-2 bg-blue-100 rounded-full">
                   <Bell className="text-blue-600" size={20} />

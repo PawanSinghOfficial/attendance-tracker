@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { Id } from "@/convex/_generated/dataModel";
 import { formatDate } from "@/lib/attendance-utils";
 import { SubjectsSkeleton } from "@/components/LoadingSkeleton";
+import { PageTransition } from "@/components/PageTransition";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -169,8 +170,9 @@ export default function Subjects() {
   const todayStr = formatDate(today);
 
   return (
-    <AppLayout>
-      <div className="max-w-7xl mx-auto space-y-8 fade-in">
+    <PageTransition>
+      <AppLayout>
+        <div className="max-w-7xl mx-auto space-y-8 fade-in">
         {/* Header */}
         <div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-[oklch(var(--gradient-2))] to-[oklch(var(--gradient-3))] bg-clip-text text-transparent">
@@ -508,6 +510,7 @@ export default function Subjects() {
           </div>
         </div>
       </div>
-    </AppLayout>
+      </AppLayout>
+    </PageTransition>
   );
 }
