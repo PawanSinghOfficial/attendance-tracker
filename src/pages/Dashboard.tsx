@@ -18,7 +18,7 @@ import {
   willReachTarget,
   calculateStreak,
 } from "@/lib/attendance-utils";
-import { Check, X, Clock, AlertTriangle, TrendingUp, Flame, Plus, Calendar as CalendarIcon } from "lucide-react";
+import { Check, X, Clock, AlertTriangle, TrendingUp, Flame, Plus, Calendar as CalendarIcon, LayoutGrid, Grid3x3 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -31,6 +31,7 @@ import { QuickActionsButton } from "@/components/QuickActionsButton";
 import { ClassReminders } from "@/components/ClassReminders";
 import { WeeklySummary } from "@/components/WeeklySummary";
 import { PageTransition } from "@/components/PageTransition";
+import { TimetableGrid } from "@/components/TimetableGrid";
 
 export default function Dashboard() {
   const subjects = useQuery(api.subjects.list);
@@ -42,6 +43,7 @@ export default function Dashboard() {
 
   const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set());
   const [showCalendar, setShowCalendar] = useState(false);
+  const [viewMode, setViewMode] = useState<"cards" | "timetable">("cards");
 
   const today = new Date();
   const todayStr = formatDate(today);
@@ -209,14 +211,130 @@ export default function Dashboard() {
         {/* Weekly Summary Widget */}
         <WeeklySummary />
 
+        {/* Today's Schedule */}
+        <section>
+          <h2 className="text-2xl font-semibold mb-4">Today's Schedule</h2>
+          {todayClasses.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <p className="text-muted-foreground">No classes scheduled for today</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {todayClasses.map((cls, index) => {
+                const attendance = allAttendance?.find(
+                  (a) => a.classId === cls._id && a.date === todayStr
+                );
+
+                return (
+                  <motion.div
+                    key={cls._id}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    <Card className="hover-lift">
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <div>
+                            <h3 className="font-semibold text-lg">
+                              {cls.subject?.name || "Unknown"}
+                            </h3>
+                            <Badge variant="secondary" className="mt-1">
+                              {cls.type}
+                            </Badge>
+                          </div>
+                          <div className="text-right text-sm">
+                            <div className="font-medium">{cls.startTime}</div>
+                            <div className="text-muted-foreground">{cls.endTime}</div>
+                          </div>
+                        </div>
+
+                        {attendance ? (
+                          <div className="flex items-center justify-center gap-2 p-3 bg-muted rounded-lg">
+                            {attendance.status === "present" ? (
+                              <>
+                                <Check className="text-green-600" />
+                                <span className="font-medium">Marked Present</span>
+                              </>
+                            ) : (
+                              <>
+                                <X className="text-red-600" />
+                                <span className="font-medium">Marked Absent</span>
+                              </>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-2 gap-2">
+                            <Button
+                              onClick={() =>
+                                handleMarkAttendance(
+                                  cls.subjectId,
+                                  cls._id,
+                                  todayStr,
+                                  "present"
+                                )
+                              }
+                              className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
+                            >
+                              <Check size={16} className="mr-1" />
+                              Present
+                            </Button>
+                            <Button
+                              onClick={() =>
+                                handleMarkAttendance(cls.subjectId, cls._id, todayStr, "absent")
+                              }
+                              variant="destructive"
+                            >
+                              <X size={16} className="mr-1" />
+                              Absent
+                            </Button>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
         {/* This Week's Schedule */}
         <section>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-semibold">This Week's Schedule</h2>
-            <Badge variant="outline" className="text-sm">
-              {weekDates[0] && format(weekDates[0], "MMM d")} - {weekDates[6] && format(weekDates[6], "MMM d")}
-            </Badge>
+            <div className="flex items-center gap-3">
+              <Badge variant="outline" className="text-sm">
+                {weekDates[0] && format(weekDates[0], "MMM d")} - {weekDates[6] && format(weekDates[6], "MMM d")}
+              </Badge>
+              <div className="flex items-center gap-2 bg-muted p-1 rounded-lg">
+                <Button
+                  variant={viewMode === "cards" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("cards")}
+                  className="h-8"
+                >
+                  <LayoutGrid size={16} className="mr-1" />
+                  Cards
+                </Button>
+                <Button
+                  variant={viewMode === "timetable" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("timetable")}
+                  className="h-8"
+                >
+                  <Grid3x3 size={16} className="mr-1" />
+                  Timetable
+                </Button>
+              </div>
+            </div>
           </div>
+
+          {viewMode === "timetable" ? (
+            <TimetableGrid weeklySchedule={weeklySchedule} weekDates={weekDates} />
+          ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
             {weekDates.map((date, index) => {
               const dateStr = formatDate(date);
@@ -384,95 +502,6 @@ export default function Dashboard() {
               );
             })}
           </div>
-        </section>
-
-        {/* Today's Schedule */}
-        <section>
-          <h2 className="text-2xl font-semibold mb-4">Today's Schedule</h2>
-          {todayClasses.length === 0 ? (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <p className="text-muted-foreground">No classes scheduled for today</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {todayClasses.map((cls, index) => {
-                const attendance = allAttendance?.find(
-                  (a) => a.classId === cls._id && a.date === todayStr
-                );
-
-                return (
-                  <motion.div
-                    key={cls._id}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: index * 0.1 }}
-                  >
-                    <Card className="hover-lift">
-                      <CardContent className="p-6">
-                        <div className="flex items-start justify-between mb-4">
-                          <div>
-                            <h3 className="font-semibold text-lg">
-                              {cls.subject?.name || "Unknown"}
-                            </h3>
-                            <Badge variant="secondary" className="mt-1">
-                              {cls.type}
-                            </Badge>
-                          </div>
-                          <div className="text-right text-sm">
-                            <div className="font-medium">{cls.startTime}</div>
-                            <div className="text-muted-foreground">{cls.endTime}</div>
-                          </div>
-                        </div>
-
-                        {attendance ? (
-                          <div className="flex items-center justify-center gap-2 p-3 bg-muted rounded-lg">
-                            {attendance.status === "present" ? (
-                              <>
-                                <Check className="text-green-600" />
-                                <span className="font-medium">Marked Present</span>
-                              </>
-                            ) : (
-                              <>
-                                <X className="text-red-600" />
-                                <span className="font-medium">Marked Absent</span>
-                              </>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="grid grid-cols-2 gap-2">
-                            <Button
-                              onClick={() =>
-                                handleMarkAttendance(
-                                  cls.subjectId,
-                                  cls._id,
-                                  todayStr,
-                                  "present"
-                                )
-                              }
-                              className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
-                            >
-                              <Check size={16} className="mr-1" />
-                              Present
-                            </Button>
-                            <Button
-                              onClick={() =>
-                                handleMarkAttendance(cls.subjectId, cls._id, todayStr, "absent")
-                              }
-                              variant="destructive"
-                            >
-                              <X size={16} className="mr-1" />
-                              Absent
-                            </Button>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                );
-              })}
-            </div>
           )}
         </section>
 
