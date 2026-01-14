@@ -45,6 +45,7 @@ export default function Dashboard() {
   const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set());
   const [showCalendar, setShowCalendar] = useState(false);
   const [viewMode, setViewMode] = useState<"cards" | "timetable">("cards");
+  const [showUpcomingDays, setShowUpcomingDays] = useState(false);
 
   const today = new Date();
   const todayStr = formatDate(today);
@@ -354,8 +355,23 @@ export default function Dashboard() {
 
         {/* Upcoming Days - Next 6 Days */}
         <section>
-          <h2 className="text-2xl font-semibold mb-4">Upcoming Days</h2>
-          <div className="space-y-6">
+          <Collapsible open={showUpcomingDays} onOpenChange={setShowUpcomingDays}>
+            <CollapsibleTrigger asChild>
+              <Button
+                variant="ghost"
+                className="w-full justify-between p-0 h-auto hover:bg-transparent mb-4"
+              >
+                <h2 className="text-2xl font-semibold">Upcoming Days</h2>
+                <motion.div
+                  animate={{ rotate: showUpcomingDays ? 180 : 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <ChevronDown size={24} />
+                </motion.div>
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="space-y-6">
             {[1, 2, 3, 4, 5, 6].map((dayOffset) => {
               const upcomingDate = new Date(today);
               upcomingDate.setDate(upcomingDate.getDate() + dayOffset);
@@ -468,7 +484,9 @@ export default function Dashboard() {
                 </Card>
               );
             })}
-          </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </section>
 
         {/* This Week's Schedule */}
