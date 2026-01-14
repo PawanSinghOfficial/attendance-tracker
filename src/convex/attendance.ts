@@ -97,6 +97,17 @@ export const remove = mutation({
   },
 });
 
+// Reset all attendance records
+export const resetAll = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const allAttendance = await ctx.db.query("attendance").collect();
+    for (const record of allAttendance) {
+      await ctx.db.delete(record._id);
+    }
+  },
+});
+
 // Get overall attendance statistics
 export const getOverallStats = query({
   args: {},

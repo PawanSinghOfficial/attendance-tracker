@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
-import { Plus, Trash2, BookOpen, Clock, Check, X } from "lucide-react";
+import { Plus, Trash2, BookOpen, Clock, Check, X, Edit, RotateCcw } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Id } from "@/convex/_generated/dataModel";
@@ -42,14 +42,19 @@ export default function Subjects() {
   const allAttendance = useQuery(api.attendance.list);
 
   const createSubject = useMutation(api.subjects.create);
+  const updateSubject = useMutation(api.subjects.update);
   const deleteSubject = useMutation(api.subjects.remove);
   const createClass = useMutation(api.classes.create);
   const deleteClass = useMutation(api.classes.remove);
   const markAttendance = useMutation(api.attendance.mark);
+  const deleteAttendance = useMutation(api.attendance.remove);
+  const resetAllAttendance = useMutation(api.attendance.resetAll);
 
   const [selectedDay, setSelectedDay] = useState(1); // Monday by default
   const [isSubjectDialogOpen, setIsSubjectDialogOpen] = useState(false);
   const [isClassDialogOpen, setIsClassDialogOpen] = useState(false);
+  const [isEditSubjectDialogOpen, setIsEditSubjectDialogOpen] = useState(false);
+  const [editingSubjectId, setEditingSubjectId] = useState<Id<"subjects"> | null>(null);
 
   // Subject form state
   const [subjectName, setSubjectName] = useState("");
@@ -106,12 +111,71 @@ export default function Subjects() {
     }
   };
 
+  const handleEditSubject = (subject: any) => {
+    setEditingSubjectId(subject._id);
+    setSubjectName(subject.name);
+    setSubjectCode(subject.code);
+    setTargetAttendance(subject.targetAttendance.toString());
+    setSelectedColor(subject.color);
+    setIsEditSubjectDialogOpen(true);
+  };
+
+  const handleUpdateSubject = async () => {
+    if (!subjectName || !subjectCode || !editingSubjectId) {
+      toast.error("Please fill all fields");
+      return;
+    }
+
+    try {
+      await updateSubject({
+        id: editingSubjectId,
+        name: subjectName,
+        code: subjectCode,
+        targetAttendance: parseInt(targetAttendance),
+        color: selectedColor,
+      });
+
+      toast.success(
+        <div className="flex items-center gap-2">
+          <Check className="text-green-600" size={18} />
+          <span>Subject updated successfully</span>
+        </div>
+      );
+      setIsEditSubjectDialogOpen(false);
+      setEditingSubjectId(null);
+      setSubjectName("");
+      setSubjectCode("");
+      setTargetAttendance("75");
+      setSelectedColor(COLORS[0]);
+    } catch (error) {
+      toast.error("Failed to update subject");
+    }
+  };
+
   const handleDeleteSubject = async (id: Id<"subjects">) => {
     try {
       await deleteSubject({ id });
       toast.success("Subject deleted");
     } catch (error) {
       toast.error("Failed to delete subject");
+    }
+  };
+
+  const handleResetAllAttendance = async () => {
+    if (!confirm("Are you sure you want to reset ALL attendance records? This action cannot be undone!")) {
+      return;
+    }
+
+    try {
+      await resetAllAttendance({});
+      toast.success(
+        <div className="flex items-center gap-2">
+          <Check className="text-green-600" size={18} />
+          <span>All attendance reset to 0%</span>
+        </div>
+      );
+    } catch (error) {
+      toast.error("Failed to reset attendance");
     }
   };
 
@@ -257,6 +321,72 @@ export default function Subjects() {
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
+
+                  {/* Edit Subject Dialog */}
+                  <Dialog open={isEditSubjectDialogOpen} onOpenChange={setIsEditSubjectDialogOpen}>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Edit Subject</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="edit-name">Subject Name</Label>
+                          <Input
+                            id="edit-name"
+                            value={subjectName}
+                            onChange={(e) => setSubjectName(e.target.value)}
+                            placeholder="e.g., Mathematics"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="edit-code">Subject Code</Label>
+                          <Input
+                            id="edit-code"
+                            value={subjectCode}
+                            onChange={(e) => setSubjectCode(e.target.value)}
+                            placeholder="e.g., MATH101"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="edit-target">Target Attendance (%)</Label>
+                          <Input
+                            id="edit-target"
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={targetAttendance}
+                            onChange={(e) => setTargetAttendance(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label>Color</Label>
+                          <div className="flex gap-2 mt-2">
+                            {COLORS.map((color) => (
+                              <button
+                                key={color}
+                                onClick={() => setSelectedColor(color)}
+                                className={`w-8 h-8 rounded-full border-2 transition-all ${
+                                  selectedColor === color
+                                    ? "border-primary scale-110"
+                                    : "border-transparent"
+                                }`}
+                                style={{ backgroundColor: color }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => {
+                          setIsEditSubjectDialogOpen(false);
+                          resetSubjectForm();
+                        }}>
+                          Cancel
+                        </Button>
+                        <Button onClick={handleUpdateSubject}>Update Subject</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </CardHeader>
               <CardContent className="space-y-2">
@@ -296,14 +426,24 @@ export default function Subjects() {
                               </span>
                             </div>
                           </div>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={() => handleDeleteSubject(subject._id)}
-                          >
-                            <Trash2 size={16} className="text-destructive" />
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => handleEditSubject(subject)}
+                            >
+                              <Edit size={16} className="text-primary" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => handleDeleteSubject(subject._id)}
+                            >
+                              <Trash2 size={16} className="text-destructive" />
+                            </Button>
+                          </div>
                         </div>
                       </motion.div>
                     );

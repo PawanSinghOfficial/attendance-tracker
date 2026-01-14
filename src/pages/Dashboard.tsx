@@ -18,7 +18,7 @@ import {
   willReachTarget,
   calculateStreak,
 } from "@/lib/attendance-utils";
-import { Check, X, Clock, AlertTriangle, TrendingUp, Flame, Plus, Calendar as CalendarIcon, LayoutGrid, Grid3x3 } from "lucide-react";
+import { Check, X, Clock, AlertTriangle, TrendingUp, Flame, Plus, Calendar as CalendarIcon, LayoutGrid, Grid3x3, RotateCcw } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -40,6 +40,7 @@ export default function Dashboard() {
   const overallStats = useQuery(api.attendance.getOverallStats);
   const settings = useQuery(api.settings.get);
   const markAttendance = useMutation(api.attendance.mark);
+  const resetAllAttendance = useMutation(api.attendance.resetAll);
 
   const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set());
   const [showCalendar, setShowCalendar] = useState(false);
@@ -90,6 +91,29 @@ export default function Dashboard() {
       newExpanded.add(subjectId);
     }
     setExpandedSubjects(newExpanded);
+  };
+
+  const handleResetAllAttendance = async () => {
+    if (!confirm("Are you sure you want to reset ALL attendance records? This will bring your attendance to 0%. This action cannot be undone!")) {
+      return;
+    }
+
+    try {
+      await resetAllAttendance({});
+      toast.success(
+        <div className="flex items-center gap-2">
+          <Check className="text-green-600" size={18} />
+          <span>All attendance reset to 0%</span>
+        </div>
+      );
+    } catch (error) {
+      toast.error(
+        <div className="flex items-center gap-2">
+          <X className="text-red-600" size={18} />
+          <span>Failed to reset attendance</span>
+        </div>
+      );
+    }
   };
 
   // Get today's classes
@@ -180,6 +204,14 @@ export default function Dashboard() {
               <CalendarIcon size={16} className="mr-2" />
               {showCalendar ? "Hide" : "Show"} Calendar
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleResetAllAttendance}
+            >
+              <RotateCcw size={16} className="mr-2" />
+              Reset All
+            </Button>
             <Badge
               variant={overallStats.percentage >= 75 ? "default" : "destructive"}
               className="text-lg px-4 py-2"
@@ -254,18 +286,35 @@ export default function Dashboard() {
                         </div>
 
                         {attendance ? (
-                          <div className="flex items-center justify-center gap-2 p-3 bg-muted rounded-lg">
-                            {attendance.status === "present" ? (
-                              <>
-                                <Check className="text-green-600" />
-                                <span className="font-medium">Marked Present</span>
-                              </>
-                            ) : (
-                              <>
-                                <X className="text-red-600" />
-                                <span className="font-medium">Marked Absent</span>
-                              </>
-                            )}
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-center gap-2 p-3 bg-muted rounded-lg">
+                              {attendance.status === "present" ? (
+                                <>
+                                  <Check className="text-green-600" />
+                                  <span className="font-medium">Marked Present</span>
+                                </>
+                              ) : (
+                                <>
+                                  <X className="text-red-600" />
+                                  <span className="font-medium">Marked Absent</span>
+                                </>
+                              )}
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full"
+                              onClick={() =>
+                                handleMarkAttendance(
+                                  cls.subjectId,
+                                  cls._id,
+                                  todayStr,
+                                  attendance.status === "present" ? "absent" : "present"
+                                )
+                              }
+                            >
+                              Change to {attendance.status === "present" ? "Absent" : "Present"}
+                            </Button>
                           </div>
                         ) : (
                           <div className="grid grid-cols-2 gap-2">
