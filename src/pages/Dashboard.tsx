@@ -211,12 +211,31 @@ export default function Dashboard() {
 
         {/* This Week's Schedule */}
         <section>
-          <h2 className="text-2xl font-semibold mb-4">This Week's Schedule</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-semibold">This Week's Schedule</h2>
+            <Badge variant="outline" className="text-sm">
+              {weekDates[0] && format(weekDates[0], "MMM d")} - {weekDates[6] && format(weekDates[6], "MMM d")}
+            </Badge>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
             {weekDates.map((date, index) => {
               const dateStr = formatDate(date);
               const dayClasses = weeklySchedule[date.getDay()] || [];
               const isTodayDate = isToday(date);
+
+              // Calculate attendance stats for this day
+              const attendedClasses = dayClasses.filter((cls) => {
+                const attendance = allAttendance?.find(
+                  (a) => a.classId === cls._id && a.date === dateStr
+                );
+                return attendance?.status === "present";
+              }).length;
+
+              const totalMarked = dayClasses.filter((cls) => {
+                return allAttendance?.find(
+                  (a) => a.classId === cls._id && a.date === dateStr
+                );
+              }).length;
 
               return (
                 <motion.div
@@ -224,59 +243,140 @@ export default function Dashboard() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
+                  className="relative"
                 >
                   <Card
-                    className={`hover-lift ${isTodayDate ? "ring-2 ring-primary" : ""}`}
+                    className={`hover-lift transition-all ${
+                      isTodayDate
+                        ? "ring-2 ring-primary bg-gradient-to-br from-blue-50 to-purple-50"
+                        : "bg-white"
+                    }`}
                   >
-                    <CardHeader className="p-3 pb-2">
-                      <CardTitle className="text-sm font-medium text-center">
-                        {getShortDayName(date)}
-                        <div className="text-xs text-muted-foreground">
+                    {/* Day header with colored accent */}
+                    <CardHeader className="p-4 pb-3 relative overflow-hidden">
+                      <div
+                        className="absolute top-0 left-0 right-0 h-1"
+                        style={{
+                          background: isTodayDate
+                            ? "linear-gradient(90deg, #8b5cf6, #3b82f6)"
+                            : dayClasses.length > 0 ? "#e0e7ff" : "#f3f4f6"
+                        }}
+                      />
+                      <CardTitle className="text-center">
+                        <div className={`text-lg font-bold ${isTodayDate ? "text-primary" : ""}`}>
+                          {getShortDayName(date)}
+                        </div>
+                        <div className="text-xs text-muted-foreground font-normal mt-1">
                           {format(date, "MMM d")}
                         </div>
+                        {isTodayDate && (
+                          <Badge variant="default" className="text-[10px] mt-2 h-5">
+                            Today
+                          </Badge>
+                        )}
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="p-3 pt-0 space-y-2">
-                      {dayClasses.length === 0 ? (
-                        <p className="text-xs text-muted-foreground text-center">No classes</p>
-                      ) : (
-                        dayClasses.slice(0, 3).map((cls) => {
-                          const attendance = allAttendance?.find(
-                            (a) => a.classId === cls._id && a.date === dateStr
-                          );
 
-                          return (
-                            <div
-                              key={cls._id}
-                              className="text-xs p-2 bg-muted rounded-lg space-y-1"
+                    <CardContent className="p-4 pt-2 space-y-2">
+                      {/* Classes count badge */}
+                      {dayClasses.length > 0 && (
+                        <div className="flex items-center justify-center gap-2 mb-2">
+                          <Badge
+                            variant="secondary"
+                            className="text-xs h-6"
+                          >
+                            {dayClasses.length} {dayClasses.length === 1 ? "class" : "classes"}
+                          </Badge>
+                          {totalMarked > 0 && (
+                            <Badge
+                              variant={attendedClasses === totalMarked ? "default" : "outline"}
+                              className="text-xs h-6"
                             >
-                              <div className="font-medium truncate">
-                                {cls.subject?.name || "Unknown"}
-                              </div>
-                              <Badge variant="outline" className="text-[10px] h-4 px-1">
-                                {cls.type}
-                              </Badge>
-                              <div className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                <Clock size={10} />
-                                {cls.startTime} – {cls.endTime}
-                              </div>
-                              {attendance && (
-                                <div className="flex justify-center mt-1">
-                                  {attendance.status === "present" ? (
-                                    <Check size={14} className="text-green-600" />
-                                  ) : (
-                                    <X size={14} className="text-red-600" />
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })
+                              {attendedClasses}/{totalMarked}
+                            </Badge>
+                          )}
+                        </div>
                       )}
-                      {dayClasses.length > 3 && (
-                        <p className="text-[10px] text-muted-foreground text-center">
-                          +{dayClasses.length - 3} more
-                        </p>
+
+                      {dayClasses.length === 0 ? (
+                        <div className="text-center py-6">
+                          <div className="text-4xl mb-2 opacity-30">☀️</div>
+                          <p className="text-xs text-muted-foreground">Free day</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {dayClasses.slice(0, 3).map((cls) => {
+                            const attendance = allAttendance?.find(
+                              (a) => a.classId === cls._id && a.date === dateStr
+                            );
+                            const subject = subjects?.find(s => s._id === cls.subjectId);
+
+                            return (
+                              <motion.div
+                                key={cls._id}
+                                whileHover={{ scale: 1.02 }}
+                                className="relative"
+                              >
+                                <div
+                                  className="p-2.5 rounded-lg border-l-3 shadow-sm transition-shadow hover:shadow-md"
+                                  style={{
+                                    borderLeftWidth: "3px",
+                                    borderLeftColor: subject?.color || "#8b5cf6",
+                                    backgroundColor: attendance?.status === "present"
+                                      ? "rgba(34, 197, 94, 0.05)"
+                                      : attendance?.status === "absent"
+                                      ? "rgba(239, 68, 68, 0.05)"
+                                      : "#fafafa"
+                                  }}
+                                >
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="flex-1 min-w-0">
+                                      <div className="font-semibold text-xs truncate mb-1">
+                                        {cls.subject?.name || "Unknown"}
+                                      </div>
+                                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                                        <Clock size={10} />
+                                        <span>{cls.startTime}</span>
+                                      </div>
+                                    </div>
+                                    <div className="flex flex-col items-end gap-1">
+                                      <Badge
+                                        variant="outline"
+                                        className="text-[9px] h-4 px-1.5 border-none"
+                                        style={{
+                                          backgroundColor: subject?.color + "20",
+                                          color: subject?.color
+                                        }}
+                                      >
+                                        {cls.type}
+                                      </Badge>
+                                      {attendance && (
+                                        <div className="flex items-center">
+                                          {attendance.status === "present" ? (
+                                            <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center">
+                                              <Check size={12} className="text-green-600" />
+                                            </div>
+                                          ) : (
+                                            <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center">
+                                              <X size={12} className="text-red-600" />
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </motion.div>
+                            );
+                          })}
+                          {dayClasses.length > 3 && (
+                            <div className="text-center">
+                              <Badge variant="secondary" className="text-[10px] h-5">
+                                +{dayClasses.length - 3} more
+                              </Badge>
+                            </div>
+                          )}
+                        </div>
                       )}
                     </CardContent>
                   </Card>
