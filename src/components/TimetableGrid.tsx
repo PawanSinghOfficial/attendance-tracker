@@ -110,23 +110,23 @@ export function TimetableGrid({ weeklySchedule, weekDates }: TimetableGridProps)
       transition={{ duration: 0.3 }}
     >
       <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
-          <div className="min-w-[600px]">
+        <div className="overflow-y-auto max-h-[600px]">
+          <div className="w-full">
             {/* Table Structure */}
-            <table className="w-full border-collapse">
+            <table className="w-full border-collapse table-fixed">
               <thead>
                 <tr className="border-b bg-muted/30">
-                  <th className="p-3 text-left font-semibold text-sm border-r sticky left-0 bg-muted/30 z-10 min-w-[100px]">
+                  <th className="p-2 text-left font-semibold text-xs border-r sticky left-0 top-0 bg-muted/30 z-20 w-16">
                     Day
                   </th>
                   {TIME_SLOTS.map((time) => (
                     <th
                       key={time}
-                      className="p-3 text-center font-semibold text-sm border-r last:border-r-0 min-w-[120px]"
+                      className="p-1.5 text-center font-semibold text-[10px] border-r last:border-r-0 sticky top-0 bg-muted/30 z-10"
                     >
                       <div className="flex flex-col items-center">
-                        <span>{time.split(" ")[0]}</span>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs">{time.split(" ")[0]}</span>
+                        <span className="text-[9px] text-muted-foreground">
                           {time.split(" ")[1]}
                         </span>
                       </div>
@@ -146,17 +146,17 @@ export function TimetableGrid({ weeklySchedule, weekDates }: TimetableGridProps)
                     >
                       {/* Day Column */}
                       <td
-                        className={`p-3 border-r font-medium sticky left-0 z-10 ${
+                        className={`p-2 border-r font-medium sticky left-0 z-10 ${
                           isToday ? "bg-primary/10" : "bg-background"
                         }`}
                       >
                         <div className="flex flex-col">
                           <span
-                            className={`text-sm ${isToday ? "text-primary font-semibold" : ""}`}
+                            className={`text-[11px] ${isToday ? "text-primary font-semibold" : ""}`}
                           >
                             {DAYS[date.getDay()]}
                           </span>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-[9px] text-muted-foreground">
                             {format(date, "MMM d")}
                           </span>
                         </div>
@@ -178,7 +178,7 @@ export function TimetableGrid({ weeklySchedule, weekDates }: TimetableGridProps)
                             <td
                               key={timeSlot}
                               colSpan={slotInfo.colspan}
-                              className="p-2 border-r align-top"
+                              className="p-1 border-r align-top"
                             >
                               <motion.div
                                 initial={{ scale: 0.8, opacity: 0 }}
@@ -187,27 +187,27 @@ export function TimetableGrid({ weeklySchedule, weekDates }: TimetableGridProps)
                                   delay: dayIndex * 0.03,
                                 }}
                                 whileHover={{ scale: 1.02, zIndex: 10 }}
-                                className="rounded-md shadow-sm cursor-pointer overflow-hidden p-3 h-full"
+                                className="rounded-md shadow-sm cursor-pointer overflow-hidden p-2 h-full min-h-[70px]"
                                 style={{
                                   backgroundColor: cls.subject?.color || "#8b5cf6",
                                 }}
                               >
                                 <div className="text-white h-full flex flex-col justify-between">
                                   <div>
-                                    <div className="font-semibold text-sm mb-1">
+                                    <div className="font-semibold text-[11px] leading-tight mb-1 line-clamp-2">
                                       {cls.subject?.name || "Unknown"}
                                     </div>
                                     <Badge
                                       variant="secondary"
-                                      className="text-[10px] h-5 px-1.5 bg-white/20 text-white border-none"
+                                      className="text-[8px] h-4 px-1 bg-white/20 text-white border-none"
                                     >
                                       {cls.type}
                                     </Badge>
                                   </div>
-                                  <div className="flex items-center gap-1 text-xs opacity-90 mt-2">
-                                    <Clock size={12} />
-                                    <span>
-                                      {cls.startTime} - {cls.endTime}
+                                  <div className="flex items-center gap-0.5 text-[9px] opacity-90 mt-1">
+                                    <Clock size={10} />
+                                    <span className="truncate">
+                                      {cls.startTime.split(" ")[0]}-{cls.endTime.split(" ")[0]}
                                     </span>
                                   </div>
                                 </div>
@@ -220,9 +220,9 @@ export function TimetableGrid({ weeklySchedule, weekDates }: TimetableGridProps)
                         return (
                           <td
                             key={timeSlot}
-                            className="p-2 border-r last:border-r-0 align-top"
+                            className="p-1 border-r last:border-r-0 align-top"
                           >
-                            <div className="h-[80px] flex items-center justify-center">
+                            <div className="h-[70px] flex items-center justify-center">
                               <span className="text-xs text-muted-foreground/30">—</span>
                             </div>
                           </td>
@@ -237,22 +237,19 @@ export function TimetableGrid({ weeklySchedule, weekDates }: TimetableGridProps)
         </div>
 
         {/* Legend */}
-        <div className="border-t p-4 bg-muted/20">
-          <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded bg-primary/10 border border-primary" />
-              <span>Today's row</span>
+        <div className="border-t p-3 bg-muted/20">
+          <div className="flex items-center gap-3 text-[10px] text-muted-foreground flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded bg-primary/10 border border-primary" />
+              <span>Today</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded bg-purple-500" />
-              <span>Class blocks are color-coded by subject</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded bg-purple-500" />
+              <span>Color-coded</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Clock size={12} />
-              <span>Classes span across their full duration</span>
-            </div>
-            <div className="ml-auto text-muted-foreground">
-              Hover over classes for details
+            <div className="flex items-center gap-1.5">
+              <Clock size={10} />
+              <span>Full duration</span>
             </div>
           </div>
         </div>
