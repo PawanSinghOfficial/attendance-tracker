@@ -81,15 +81,23 @@ export function ClassReminders() {
 
       // Show notification for classes within 10 minutes
       if (cls.minutesUntil <= 10 && cls.minutesUntil > 0) {
-        new Notification(`Class Starting Soon!`, {
-          body: `${cls.subject?.name} starts in ${cls.minutesUntil} minutes`,
-          icon: "/logo.png",
-          tag: notificationKey,
-        });
+        try {
+          // Check if we can use the Notification constructor
+          if (typeof Notification === "function") {
+            new Notification(`Class Starting Soon!`, {
+              body: `${cls.subject?.name} starts in ${cls.minutesUntil} minutes`,
+              icon: "/logo.png",
+              tag: notificationKey,
+            });
 
-        // Mark as shown
-        shownNotifications[notificationKey] = true;
-        localStorage.setItem("shownNotifications", JSON.stringify(shownNotifications));
+            // Mark as shown
+            shownNotifications[notificationKey] = true;
+            localStorage.setItem("shownNotifications", JSON.stringify(shownNotifications));
+          }
+        } catch (error) {
+          // Silently fail if Notification constructor is not available
+          console.warn("Browser notifications not available:", error);
+        }
       }
     });
   }, [upcomingClasses, settings, todayStr]);
