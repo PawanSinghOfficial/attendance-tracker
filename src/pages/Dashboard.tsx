@@ -123,11 +123,51 @@ export default function Dashboard() {
       ? weeklySchedule[today.getDay()].sort((a, b) => a.startTime.localeCompare(b.startTime))
       : [];
 
-  // Get attendance for each subject
+  // Get attendance for each subject with separate lecture/lab tracking
   const subjectStats =
     subjects?.map((subject) => {
       const subjectAttendance =
         allAttendance?.filter((a) => a.subjectId === subject._id) || [];
+
+      // Get all classes for this subject to determine type
+      const subjectClasses = weeklySchedule
+        ? Object.values(weeklySchedule)
+            .flat()
+            .filter((c) => c.subjectId === subject._id)
+        : [];
+
+      // Separate attendance by class type (LECTURE vs LAB)
+      const lectureAttendance = subjectAttendance.filter((a) => {
+        const cls = subjectClasses.find((c) => c._id === a.classId);
+        return cls?.type === "LECTURE";
+      });
+
+      const labAttendance = subjectAttendance.filter((a) => {
+        const cls = subjectClasses.find((c) => c._id === a.classId);
+        return cls?.type === "LAB";
+      });
+
+      const tutorialAttendance = subjectAttendance.filter((a) => {
+        const cls = subjectClasses.find((c) => c._id === a.classId);
+        return cls?.type === "TUTORIAL";
+      });
+
+      // Calculate stats for lectures
+      const lecturePresent = lectureAttendance.filter((a) => a.status === "present").length;
+      const lectureTotal = lectureAttendance.length;
+      const lecturePercentage = lectureTotal > 0 ? (lecturePresent / lectureTotal) * 100 : 0;
+
+      // Calculate stats for labs
+      const labPresent = labAttendance.filter((a) => a.status === "present").length;
+      const labTotal = labAttendance.length;
+      const labPercentage = labTotal > 0 ? (labPresent / labTotal) * 100 : 0;
+
+      // Calculate stats for tutorials
+      const tutorialPresent = tutorialAttendance.filter((a) => a.status === "present").length;
+      const tutorialTotal = tutorialAttendance.length;
+      const tutorialPercentage = tutorialTotal > 0 ? (tutorialPresent / tutorialTotal) * 100 : 0;
+
+      // Overall stats
       const present = subjectAttendance.filter((a) => a.status === "present").length;
       const absent = subjectAttendance.filter((a) => a.status === "absent").length;
       const total = present + absent;
@@ -160,6 +200,22 @@ export default function Dashboard() {
         prediction,
         classesNeeded,
         streak,
+        // Separate tracking by class type
+        lecture: {
+          present: lecturePresent,
+          total: lectureTotal,
+          percentage: lecturePercentage,
+        },
+        lab: {
+          present: labPresent,
+          total: labTotal,
+          percentage: labPercentage,
+        },
+        tutorial: {
+          present: tutorialPresent,
+          total: tutorialTotal,
+          percentage: tutorialPercentage,
+        },
       };
     }) || [];
 
@@ -868,6 +924,37 @@ export default function Dashboard() {
                           <p className="text-xs text-muted-foreground">Total</p>
                         </div>
                       </div>
+
+                      {/* Separate Lecture/Lab Stats */}
+                      {(stat.lecture.total > 0 || stat.lab.total > 0 || stat.tutorial.total > 0) && (
+                        <div className="space-y-2 pt-2 border-t">
+                          <p className="text-xs font-medium text-muted-foreground">By Class Type:</p>
+                          {stat.lecture.total > 0 && (
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-muted-foreground">Lectures</span>
+                              <Badge variant={stat.lecture.percentage >= stat.subject.targetAttendance ? "default" : "destructive"}>
+                                {stat.lecture.present}/{stat.lecture.total} ({Math.round(stat.lecture.percentage)}%)
+                              </Badge>
+                            </div>
+                          )}
+                          {stat.lab.total > 0 && (
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-muted-foreground">Labs</span>
+                              <Badge variant={stat.lab.percentage >= stat.subject.targetAttendance ? "default" : "destructive"}>
+                                {stat.lab.present}/{stat.lab.total} ({Math.round(stat.lab.percentage)}%)
+                              </Badge>
+                            </div>
+                          )}
+                          {stat.tutorial.total > 0 && (
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-muted-foreground">Tutorials</span>
+                              <Badge variant={stat.tutorial.percentage >= stat.subject.targetAttendance ? "default" : "destructive"}>
+                                {stat.tutorial.present}/{stat.tutorial.total} ({Math.round(stat.tutorial.percentage)}%)
+                              </Badge>
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       {/* Recent Attendance */}
                       <Collapsible

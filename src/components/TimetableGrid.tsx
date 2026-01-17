@@ -36,6 +36,16 @@ const TIME_SLOTS = [
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+// Helper function to check if a class falls within a time slot
+function isClassInTimeSlot(classStartTime: string, classEndTime: string, slotTime: string): boolean {
+  const slotHour = timeToHour(slotTime);
+  const classStart = timeToHour(classStartTime);
+  const classEnd = timeToHour(classEndTime);
+
+  // Class is in this slot if it starts during this hour
+  return classStart >= slotHour && classStart < slotHour + 1;
+}
+
 // Helper function to convert time string to hour
 function timeToHour(timeStr: string): number {
   const [time, period] = timeStr.split(" ");
@@ -50,18 +60,6 @@ function timeToHour(timeStr: string): number {
   return hours + minutes / 60;
 }
 
-// Calculate position and height for a class block
-function getClassPosition(startTime: string, endTime: string) {
-  const startHour = timeToHour(startTime);
-  const endHour = timeToHour(endTime);
-  const baseHour = 8; // 8 AM start
-
-  const topPosition = ((startHour - baseHour) * 80); // 80px per hour
-  const height = ((endHour - startHour) * 80) - 4; // 4px gap
-
-  return { top: topPosition, height };
-}
-
 export function TimetableGrid({ weeklySchedule, weekDates }: TimetableGridProps) {
   const today = new Date().getDay();
 
@@ -73,114 +71,127 @@ export function TimetableGrid({ weeklySchedule, weekDates }: TimetableGridProps)
     >
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
-          <div className="min-w-[800px]">
-            {/* Header - Days of week */}
-            <div className="grid grid-cols-8 border-b bg-muted/30">
-              <div className="p-3 text-center font-semibold text-sm border-r">Time</div>
-              {weekDates.map((date, index) => (
-                <div
-                  key={index}
-                  className={`p-3 text-center border-r last:border-r-0 ${
-                    date.getDay() === today ? "bg-primary/10" : ""
-                  }`}
-                >
-                  <div className={`font-semibold text-sm ${date.getDay() === today ? "text-primary" : ""}`}>
-                    {DAYS[date.getDay()]}
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-0.5">
-                    {format(date, "MMM d")}
-                  </div>
-                </div>
-              ))}
-            </div>
+          <div className="min-w-[600px]">
+            {/* Table Structure */}
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b bg-muted/30">
+                  <th className="p-3 text-left font-semibold text-sm border-r sticky left-0 bg-muted/30 z-10">
+                    Day
+                  </th>
+                  {TIME_SLOTS.map((time) => (
+                    <th
+                      key={time}
+                      className="p-3 text-center font-semibold text-sm border-r last:border-r-0"
+                    >
+                      <div className="flex flex-col items-center">
+                        <span>{time.split(" ")[0]}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {time.split(" ")[1]}
+                        </span>
+                      </div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {weekDates.map((date, dayIndex) => {
+                  const dayClasses = weeklySchedule[date.getDay()] || [];
+                  const isToday = date.getDay() === today;
 
-            {/* Grid - Time slots and classes */}
-            <div className="grid grid-cols-8 relative">
-              {/* Time labels column */}
-              <div className="border-r">
-                {TIME_SLOTS.map((time) => (
-                  <div
-                    key={time}
-                    className="h-20 border-b flex items-center justify-center text-xs text-muted-foreground font-medium"
-                  >
-                    {time}
-                  </div>
-                ))}
-              </div>
+                  return (
+                    <tr
+                      key={dayIndex}
+                      className={`border-b last:border-b-0 ${isToday ? "bg-primary/5" : ""}`}
+                    >
+                      {/* Day Column */}
+                      <td
+                        className={`p-3 border-r font-medium sticky left-0 ${
+                          isToday ? "bg-primary/10" : "bg-background"
+                        }`}
+                      >
+                        <div className="flex flex-col">
+                          <span
+                            className={`text-sm ${isToday ? "text-primary font-semibold" : ""}`}
+                          >
+                            {DAYS[date.getDay()]}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {format(date, "MMM d")}
+                          </span>
+                        </div>
+                      </td>
 
-              {/* Days columns with classes */}
-              {weekDates.map((date, dayIndex) => {
-                const dayClasses = weeklySchedule[date.getDay()] || [];
-                const isToday = date.getDay() === today;
-
-                return (
-                  <div
-                    key={dayIndex}
-                    className={`border-r last:border-r-0 relative ${
-                      isToday ? "bg-primary/5" : ""
-                    }`}
-                  >
-                    {/* Time slot grid lines */}
-                    {TIME_SLOTS.map((time) => (
-                      <div
-                        key={time}
-                        className="h-20 border-b"
-                      />
-                    ))}
-
-                    {/* Class blocks positioned absolutely */}
-                    <div className="absolute inset-0 p-1">
-                      {dayClasses.map((cls, classIndex) => {
-                        const { top, height } = getClassPosition(cls.startTime, cls.endTime);
+                      {/* Time Slot Columns */}
+                      {TIME_SLOTS.map((timeSlot) => {
+                        // Find classes that start in this time slot
+                        const slotClasses = dayClasses.filter((cls) =>
+                          isClassInTimeSlot(cls.startTime, cls.endTime, timeSlot)
+                        );
 
                         return (
-                          <motion.div
-                            key={cls._id}
-                            initial={{ scale: 0.8, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{ delay: dayIndex * 0.05 + classIndex * 0.02 }}
-                            whileHover={{ scale: 1.02, zIndex: 10 }}
-                            className="absolute left-1 right-1 rounded-lg shadow-sm cursor-pointer overflow-hidden"
-                            style={{
-                              top: `${top}px`,
-                              height: `${height}px`,
-                              backgroundColor: cls.subject?.color || "#8b5cf6",
-                            }}
+                          <td
+                            key={timeSlot}
+                            className="p-2 border-r last:border-r-0 align-top min-h-[80px]"
                           >
-                            <div className="h-full p-2 text-white flex flex-col justify-between">
-                              <div>
-                                <div className="font-semibold text-xs line-clamp-2 mb-1">
-                                  {cls.subject?.name || "Unknown"}
-                                </div>
-                                <Badge
-                                  variant="secondary"
-                                  className="text-[9px] h-4 px-1 bg-white/20 text-white border-none"
-                                >
-                                  {cls.type}
-                                </Badge>
+                            {slotClasses.length > 0 ? (
+                              <div className="space-y-1">
+                                {slotClasses.map((cls, classIndex) => (
+                                  <motion.div
+                                    key={cls._id}
+                                    initial={{ scale: 0.8, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    transition={{
+                                      delay: dayIndex * 0.03 + classIndex * 0.02,
+                                    }}
+                                    whileHover={{ scale: 1.03, zIndex: 10 }}
+                                    className="rounded-md shadow-sm cursor-pointer overflow-hidden p-2"
+                                    style={{
+                                      backgroundColor: cls.subject?.color || "#8b5cf6",
+                                    }}
+                                  >
+                                    <div className="text-white">
+                                      <div className="font-semibold text-xs line-clamp-1 mb-1">
+                                        {cls.subject?.name || "Unknown"}
+                                      </div>
+                                      <div className="flex items-center justify-between gap-1">
+                                        <Badge
+                                          variant="secondary"
+                                          className="text-[9px] h-4 px-1 bg-white/20 text-white border-none"
+                                        >
+                                          {cls.type}
+                                        </Badge>
+                                        <div className="flex items-center gap-0.5 text-[10px] opacity-90">
+                                          <Clock size={10} />
+                                          <span>{cls.startTime.split(" ")[0]}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </motion.div>
+                                ))}
                               </div>
-                              <div className="flex items-center gap-1 text-[10px] opacity-90">
-                                <Clock size={10} />
-                                <span>{cls.startTime}</span>
+                            ) : (
+                              <div className="h-[60px] flex items-center justify-center">
+                                <span className="text-xs text-muted-foreground/30">—</span>
                               </div>
-                            </div>
-                          </motion.div>
+                            )}
+                          </td>
                         );
                       })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
 
         {/* Legend */}
         <div className="border-t p-4 bg-muted/20">
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded bg-primary/10 border border-primary" />
-              <span>Today's column</span>
+              <span>Today's row</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded bg-purple-500" />
