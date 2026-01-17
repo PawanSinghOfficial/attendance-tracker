@@ -17,6 +17,7 @@ import {
   calculateRemainingClasses,
   willReachTarget,
   calculateStreak,
+  convertTo12Hour,
 } from "@/lib/attendance-utils";
 import { Check, X, Clock, AlertTriangle, TrendingUp, Flame, Plus, Calendar as CalendarIcon, LayoutGrid, Grid3x3, RotateCcw } from "lucide-react";
 import { useState } from "react";
@@ -337,8 +338,8 @@ export default function Dashboard() {
                             </Badge>
                           </div>
                           <div className="text-right text-sm">
-                            <div className="font-medium">{cls.startTime}</div>
-                            <div className="text-muted-foreground">{cls.endTime}</div>
+                            <div className="font-medium">{convertTo12Hour(cls.startTime)}</div>
+                            <div className="text-muted-foreground">{convertTo12Hour(cls.endTime)}</div>
                           </div>
                         </div>
 
@@ -466,8 +467,8 @@ export default function Dashboard() {
                                 </Badge>
                               </div>
                               <div className="text-right text-sm">
-                                <div className="font-medium">{cls.startTime}</div>
-                                <div className="text-muted-foreground text-xs">{cls.endTime}</div>
+                                <div className="font-medium">{convertTo12Hour(cls.startTime)}</div>
+                                <div className="text-muted-foreground text-xs">{convertTo12Hour(cls.endTime)}</div>
                               </div>
                             </div>
 
@@ -698,7 +699,7 @@ export default function Dashboard() {
                                       </div>
                                       <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
                                         <Clock size={10} />
-                                        <span>{cls.startTime}</span>
+                                        <span>{convertTo12Hour(cls.startTime)}</span>
                                       </div>
                                     </div>
                                     <div className="flex flex-col items-end gap-1">

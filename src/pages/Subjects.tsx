@@ -20,7 +20,7 @@ import { Plus, Trash2, BookOpen, Clock, Check, X, Edit, RotateCcw } from "lucide
 import { useState } from "react";
 import { toast } from "sonner";
 import { Id } from "@/convex/_generated/dataModel";
-import { formatDate } from "@/lib/attendance-utils";
+import { formatDate, convertTo12Hour } from "@/lib/attendance-utils";
 import { SubjectsSkeleton } from "@/components/LoadingSkeleton";
 import { PageTransition } from "@/components/PageTransition";
 
@@ -580,7 +580,7 @@ export default function Subjects() {
                                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                         <Clock size={16} />
                                         <span>
-                                          {cls.startTime} – {cls.endTime}
+                                          {convertTo12Hour(cls.startTime)} – {convertTo12Hour(cls.endTime)}
                                         </span>
                                       </div>
                                     </div>

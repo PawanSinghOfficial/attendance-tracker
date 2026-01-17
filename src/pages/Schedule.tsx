@@ -19,7 +19,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { PageTransition } from "@/components/PageTransition";
 import { Id } from "@/convex/_generated/dataModel";
-import { formatDate } from "@/lib/attendance-utils";
+import { formatDate, convertTo12Hour } from "@/lib/attendance-utils";
 
 export default function Schedule() {
   const holidays = useQuery(api.holidays.list);
@@ -386,7 +386,7 @@ export default function Schedule() {
                             <option value="">Select class</option>
                             {cancelClass_availableClasses.map((cls) => (
                               <option key={cls._id} value={cls._id}>
-                                {cls.subject?.name} - {cls.startTime} to {cls.endTime} ({cls.type})
+                                {cls.subject?.name} - {convertTo12Hour(cls.startTime)} to {convertTo12Hour(cls.endTime)} ({cls.type})
                               </option>
                             ))}
                           </select>
@@ -445,7 +445,7 @@ export default function Schedule() {
                           <p className="text-sm text-muted-foreground mt-1">
                             {exception.date}
                             {exception.type === "added" &&
-                              ` • ${exception.startTime} - ${exception.endTime} • ${exception.classType}`}
+                              ` • ${convertTo12Hour(exception.startTime || "09:00")} - ${convertTo12Hour(exception.endTime || "10:00")} • ${exception.classType}`}
                           </p>
                           {exception.reason && (
                             <p className="text-sm text-muted-foreground italic mt-1">

@@ -184,3 +184,25 @@ export function getAttendanceBadgeVariant(
   if (percentage >= target - 10) return "secondary";
   return "destructive";
 }
+
+// Convert 24-hour time to 12-hour format (e.g., "14:30" -> "02:30 PM")
+export function convertTo12Hour(time24: string): string {
+  const [hours, minutes] = time24.split(":").map(Number);
+  const period = hours >= 12 ? "PM" : "AM";
+  const hours12 = hours % 12 || 12; // Convert 0 to 12 for midnight
+  return `${hours12.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")} ${period}`;
+}
+
+// Convert 12-hour time to 24-hour format (e.g., "02:30 PM" -> "14:30")
+export function convertTo24Hour(time12: string): string {
+  const [time, period] = time12.split(" ");
+  let [hours, minutes] = time.split(":").map(Number);
+
+  if (period === "PM" && hours !== 12) {
+    hours += 12;
+  } else if (period === "AM" && hours === 12) {
+    hours = 0;
+  }
+
+  return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
+}
