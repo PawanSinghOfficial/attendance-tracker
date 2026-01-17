@@ -148,11 +148,6 @@ export default function Dashboard() {
         return cls?.type === "LAB";
       });
 
-      const tutorialAttendance = subjectAttendance.filter((a) => {
-        const cls = subjectClasses.find((c) => c._id === a.classId);
-        return cls?.type === "TUTORIAL";
-      });
-
       // Calculate stats for lectures
       const lecturePresent = lectureAttendance.filter((a) => a.status === "present").length;
       const lectureTotal = lectureAttendance.length;
@@ -162,11 +157,6 @@ export default function Dashboard() {
       const labPresent = labAttendance.filter((a) => a.status === "present").length;
       const labTotal = labAttendance.length;
       const labPercentage = labTotal > 0 ? (labPresent / labTotal) * 100 : 0;
-
-      // Calculate stats for tutorials
-      const tutorialPresent = tutorialAttendance.filter((a) => a.status === "present").length;
-      const tutorialTotal = tutorialAttendance.length;
-      const tutorialPercentage = tutorialTotal > 0 ? (tutorialPresent / tutorialTotal) * 100 : 0;
 
       // Overall stats
       const present = subjectAttendance.filter((a) => a.status === "present").length;
@@ -211,11 +201,6 @@ export default function Dashboard() {
           present: labPresent,
           total: labTotal,
           percentage: labPercentage,
-        },
-        tutorial: {
-          present: tutorialPresent,
-          total: tutorialTotal,
-          percentage: tutorialPercentage,
         },
       };
     }) || [];
@@ -927,7 +912,7 @@ export default function Dashboard() {
                       </div>
 
                       {/* Separate Lecture/Lab Stats */}
-                      {(stat.lecture.total > 0 || stat.lab.total > 0 || stat.tutorial.total > 0) && (
+                      {(stat.lecture.total > 0 || stat.lab.total > 0) && (
                         <div className="space-y-2 pt-2 border-t">
                           <p className="text-xs font-medium text-muted-foreground">By Class Type:</p>
                           {stat.lecture.total > 0 && (
@@ -943,14 +928,6 @@ export default function Dashboard() {
                               <span className="text-muted-foreground">Labs</span>
                               <Badge variant={stat.lab.percentage >= stat.subject.targetAttendance ? "default" : "destructive"}>
                                 {stat.lab.present}/{stat.lab.total} ({Math.round(stat.lab.percentage)}%)
-                              </Badge>
-                            </div>
-                          )}
-                          {stat.tutorial.total > 0 && (
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-muted-foreground">Tutorials</span>
-                              <Badge variant={stat.tutorial.percentage >= stat.subject.targetAttendance ? "default" : "destructive"}>
-                                {stat.tutorial.present}/{stat.tutorial.total} ({Math.round(stat.tutorial.percentage)}%)
                               </Badge>
                             </div>
                           )}

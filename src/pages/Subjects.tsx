@@ -533,7 +533,6 @@ export default function Subjects() {
                                 >
                                   <option value="LECTURE">Lecture</option>
                                   <option value="LAB">Lab</option>
-                                  <option value="TUTORIAL">Tutorial</option>
                                 </select>
                               </div>
                             </div>
