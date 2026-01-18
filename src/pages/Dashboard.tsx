@@ -45,7 +45,7 @@ export default function Dashboard() {
 
   const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set());
   const [showCalendar, setShowCalendar] = useState(false);
-  const [viewMode, setViewMode] = useState<"cards" | "timetable">("cards");
+  const [viewMode, setViewMode] = useState<"cards" | "timetable">("timetable");
   const [showUpcomingDays, setShowUpcomingDays] = useState(false);
 
   const today = new Date();
