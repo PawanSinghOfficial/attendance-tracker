@@ -28,17 +28,15 @@ interface TimetableGridProps {
 // Configuration for the grid columns
 // Before lunch: 1 hour intervals
 // Lunch: 12:00 - 12:30
-// After lunch: 30 min intervals
+// After lunch: 1 hour intervals
 const GRID_CONFIG = [
   { label: "08:00", start: 8, duration: 60 },
   { label: "09:00", start: 9, duration: 60 },
   { label: "10:00", start: 10, duration: 60 },
   { label: "11:00", start: 11, duration: 60 },
   { label: "12:00", start: 12, duration: 30, isLunch: true },
-  { label: "12:30", start: 12.5, duration: 30 },
-  { label: "01:00", start: 13, duration: 30 },
-  { label: "01:30", start: 13.5, duration: 30 },
-  { label: "02:00", start: 14, duration: 30 },
+  { label: "12:30", start: 12.5, duration: 60 },
+  { label: "01:30", start: 13.5, duration: 60 },
 ];
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
