@@ -40,6 +40,7 @@ export const create = mutation({
     endTime: v.string(),
     type: v.string(),
     room: v.optional(v.string()),
+    weekPattern: v.optional(v.array(v.number())),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("classes", {
@@ -49,6 +50,7 @@ export const create = mutation({
       endTime: args.endTime,
       type: args.type,
       room: args.room,
+      weekPattern: args.weekPattern,
     });
   },
 });
@@ -63,6 +65,7 @@ export const update = mutation({
     endTime: v.optional(v.string()),
     type: v.optional(v.string()),
     room: v.optional(v.string()),
+    weekPattern: v.optional(v.array(v.number())),
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
@@ -104,7 +107,18 @@ export const getWeeklySchedule = query({
   },
 });
 
-// Get schedule for a specific date, considering holidays and exceptions
+// Helper function to get week number of month (1-4)
+function getWeekOfMonth(date: Date): number {
+  const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+  const dayOfMonth = date.getDate();
+  const firstDayWeekday = firstDayOfMonth.getDay();
+
+  // Calculate which week of the month this date falls in
+  const weekNumber = Math.ceil((dayOfMonth + firstDayWeekday) / 7);
+  return Math.min(weekNumber, 4); // Cap at week 4
+}
+
+// Get schedule for a specific date, considering holidays, exceptions, and week patterns
 export const getScheduleForDate = query({
   args: { date: v.string() },
   handler: async (ctx, args) => {
@@ -125,12 +139,23 @@ export const getScheduleForDate = query({
     // Get day of week from date
     const dateObj = new Date(args.date + "T00:00:00");
     const dayOfWeek = dateObj.getDay();
+    const weekOfMonth = getWeekOfMonth(dateObj);
 
     // Get regular classes for this day
     const regularClasses = await ctx.db
       .query("classes")
       .withIndex("by_day", (q) => q.eq("dayOfWeek", dayOfWeek))
       .collect();
+
+    // Filter classes based on week pattern
+    const filteredClasses = regularClasses.filter((cls) => {
+      // If no weekPattern or empty array, class occurs every week
+      if (!cls.weekPattern || cls.weekPattern.length === 0) {
+        return true;
+      }
+      // Check if current week is in the pattern
+      return cls.weekPattern.includes(weekOfMonth);
+    });
 
     // Get exceptions for this date
     const exceptions = await ctx.db
@@ -149,7 +174,7 @@ export const getScheduleForDate = query({
         .map((e) => e.classId)
     );
 
-    const activeRegularClasses = regularClasses
+    const activeRegularClasses = filteredClasses
       .filter((cls) => !cancelledClassIds.has(cls._id))
       .map((cls) => ({
         ...cls,
@@ -179,6 +204,7 @@ export const getScheduleForDate = query({
     return {
       isHoliday: false,
       classes: allClasses,
+      weekOfMonth,
     };
   },
 });

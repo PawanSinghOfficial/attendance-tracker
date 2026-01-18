@@ -50,6 +50,7 @@ const schema = defineSchema(
       endTime: v.string(), // Format: "HH:mm" (e.g., "10:00")
       type: v.string(), // "LECTURE", "LAB", "TUTORIAL"
       room: v.optional(v.string()), // Room number
+      weekPattern: v.optional(v.array(v.number())), // Array of week numbers [1,2,3,4]. If null/empty, class occurs every week
     }).index("by_subject", ["subjectId"])
       .index("by_day", ["dayOfWeek"]),
 

@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Clock, Utensils, MapPin } from "lucide-react";
-import { convertTo12Hour } from "@/lib/attendance-utils";
+import { convertTo12Hour, getWeekOfMonth } from "@/lib/attendance-utils";
 
 interface Class {
   _id: string;
@@ -19,6 +19,7 @@ interface Class {
   endTime: string;
   type: string;
   room?: string;
+  weekPattern?: number[];
 }
 
 interface TimetableGridProps {
@@ -136,6 +137,22 @@ function getSlotInfo(dayClasses: Class[], slotIndex: number): SlotInfo {
 export function TimetableGrid({ weeklySchedule, weekDates }: TimetableGridProps) {
   const today = new Date().getDay();
 
+  // Filter classes based on week pattern for each date
+  const getClassesForDate = (date: Date): Class[] => {
+    const dayOfWeek = date.getDay();
+    const weekOfMonth = getWeekOfMonth(date);
+    const dayClasses = weeklySchedule[dayOfWeek] || [];
+
+    return dayClasses.filter((cls) => {
+      // If no weekPattern or empty array, class occurs every week
+      if (!cls.weekPattern || cls.weekPattern.length === 0) {
+        return true;
+      }
+      // Check if current week is in the pattern
+      return cls.weekPattern.includes(weekOfMonth);
+    });
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -178,7 +195,7 @@ export function TimetableGrid({ weeklySchedule, weekDates }: TimetableGridProps)
             </thead>
             <tbody>
               {weekDates.map((date, dayIndex) => {
-                const dayClasses = weeklySchedule[date.getDay()] || [];
+                const dayClasses = getClassesForDate(date);
                 const isToday = date.getDay() === today;
 
                 return (

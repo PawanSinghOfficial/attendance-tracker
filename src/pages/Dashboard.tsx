@@ -18,6 +18,7 @@ import {
   willReachTarget,
   calculateStreak,
   convertTo12Hour,
+  getWeekOfMonth,
 } from "@/lib/attendance-utils";
 import { Check, X, Clock, AlertTriangle, TrendingUp, Flame, Plus, Calendar as CalendarIcon, LayoutGrid, Grid3x3, RotateCcw } from "lucide-react";
 import { useState } from "react";
@@ -201,10 +202,20 @@ export default function Dashboard() {
     }
   };
 
-  // Get today's classes
+  // Get today's classes with week pattern filtering
+  const todayWeekOfMonth = getWeekOfMonth(today);
   const todayClasses =
     weeklySchedule && weeklySchedule[today.getDay()]
-      ? weeklySchedule[today.getDay()].sort((a, b) => a.startTime.localeCompare(b.startTime))
+      ? weeklySchedule[today.getDay()]
+          .filter((cls) => {
+            // If no weekPattern or empty array, class occurs every week
+            if (!cls.weekPattern || cls.weekPattern.length === 0) {
+              return true;
+            }
+            // Check if current week is in the pattern
+            return cls.weekPattern.includes(todayWeekOfMonth);
+          })
+          .sort((a, b) => a.startTime.localeCompare(b.startTime))
       : [];
 
   // Get attendance for each subject with separate lecture/lab tracking
@@ -497,7 +508,15 @@ export default function Dashboard() {
               upcomingDate.setDate(upcomingDate.getDate() + dayOffset);
               const upcomingDateStr = formatDate(upcomingDate);
               const upcomingDayOfWeek = upcomingDate.getDay();
-              const upcomingClasses = weeklySchedule?.[upcomingDayOfWeek] || [];
+              const upcomingWeekOfMonth = getWeekOfMonth(upcomingDate);
+              const upcomingClasses = (weeklySchedule?.[upcomingDayOfWeek] || []).filter((cls) => {
+                // If no weekPattern or empty array, class occurs every week
+                if (!cls.weekPattern || cls.weekPattern.length === 0) {
+                  return true;
+                }
+                // Check if current week is in the pattern
+                return cls.weekPattern.includes(upcomingWeekOfMonth);
+              });
 
               if (upcomingClasses.length === 0) return null;
 
@@ -646,7 +665,15 @@ export default function Dashboard() {
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
             {weekDates.map((date, index) => {
               const dateStr = formatDate(date);
-              const dayClasses = weeklySchedule[date.getDay()] || [];
+              const weekOfMonth = getWeekOfMonth(date);
+              const dayClasses = (weeklySchedule[date.getDay()] || []).filter((cls) => {
+                // If no weekPattern or empty array, class occurs every week
+                if (!cls.weekPattern || cls.weekPattern.length === 0) {
+                  return true;
+                }
+                // Check if current week is in the pattern
+                return cls.weekPattern.includes(weekOfMonth);
+              });
               const isTodayDate = isToday(date);
 
               // Calculate attendance stats for this day

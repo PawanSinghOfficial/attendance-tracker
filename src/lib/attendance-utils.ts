@@ -207,3 +207,14 @@ export function convertTo24Hour(time12: string): string {
 
   return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
 }
+
+// Get week number of month (1-4) for a given date
+export function getWeekOfMonth(date: Date): number {
+  const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+  const dayOfMonth = date.getDate();
+  const firstDayWeekday = firstDayOfMonth.getDay();
+
+  // Calculate which week of the month this date falls in
+  const weekNumber = Math.ceil((dayOfMonth + firstDayWeekday) / 7);
+  return Math.min(weekNumber, 4); // Cap at week 4
+}
