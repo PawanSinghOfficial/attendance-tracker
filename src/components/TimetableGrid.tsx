@@ -39,11 +39,6 @@ const GRID_CONFIG = [
   { label: "01:00", start: 13, duration: 30 },
   { label: "01:30", start: 13.5, duration: 30 },
   { label: "02:00", start: 14, duration: 30 },
-  { label: "02:30", start: 14.5, duration: 30 },
-  { label: "03:00", start: 15, duration: 30 },
-  { label: "03:30", start: 15.5, duration: 30 },
-  { label: "04:00", start: 16, duration: 30 },
-  { label: "04:30", start: 16.5, duration: 30 },
 ];
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
