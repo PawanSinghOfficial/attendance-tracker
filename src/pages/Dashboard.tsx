@@ -34,6 +34,89 @@ import { WeeklySummary } from "@/components/WeeklySummary";
 import { PageTransition } from "@/components/PageTransition";
 import { TimetableGrid } from "@/components/TimetableGrid";
 
+// Weekly Summary Badge Component
+function WeeklySummaryBadge() {
+  const attendance = useQuery(api.attendance.list);
+  const classes = useQuery(api.classes.list);
+
+  if (!attendance || !classes) return null;
+
+  const weekDates = getCurrentWeekDates();
+  const weekDateStrings = weekDates.map(formatDate);
+
+  // Count this week's classes
+  const thisWeekClasses = classes.filter((cls) => {
+    const dayIndex = cls.dayOfWeek;
+    return weekDates.some((date) => date.getDay() === dayIndex);
+  });
+
+  // Count attended classes this week
+  const attendedThisWeek = attendance.filter(
+    (record) =>
+      weekDateStrings.includes(record.date) && record.status === "present"
+  ).length;
+
+  // Total possible classes this week (only up to today)
+  const today = new Date();
+  const possibleClasses = thisWeekClasses.filter((cls) => {
+    const classDay = weekDates.find((date) => date.getDay() === cls.dayOfWeek);
+    return classDay && classDay <= today;
+  }).length;
+
+  const weekPercentage =
+    possibleClasses > 0 ? (attendedThisWeek / possibleClasses) * 100 : 0;
+
+  return (
+    <Badge
+      variant={weekPercentage >= 75 ? "default" : "destructive"}
+      className="text-lg px-4 py-2"
+    >
+      WEEKLY <AnimatedCounter value={weekPercentage} decimals={0} suffix="%" />
+    </Badge>
+  );
+}
+
+// Overall Summary Component
+function OverallSummary({ percentage, present, total }: { percentage: number; present: number; total: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.2 }}
+    >
+      <Card className="border-l-4 border-l-purple-500 bg-gradient-to-br from-purple-50 to-pink-50">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-purple-100 rounded-full">
+              <TrendingUp className="text-purple-600" size={20} />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-muted-foreground">
+                Overall Attendance
+              </h3>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-bold">
+                  <AnimatedCounter value={present} decimals={0} />
+                  <span className="text-lg text-muted-foreground">
+                    /{total}
+                  </span>
+                </span>
+                <span className="text-sm text-muted-foreground">classes</span>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-bold text-purple-600">
+                <AnimatedCounter value={percentage} decimals={0} suffix="%" />
+              </div>
+              <div className="text-xs text-muted-foreground">attended</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
 export default function Dashboard() {
   const subjects = useQuery(api.subjects.list);
   const weeklySchedule = useQuery(api.classes.getWeeklySchedule);
@@ -255,12 +338,7 @@ export default function Dashboard() {
               <RotateCcw size={16} className="mr-2" />
               Reset All
             </Button>
-            <Badge
-              variant={overallStats.percentage >= 75 ? "default" : "destructive"}
-              className="text-lg px-4 py-2"
-            >
-              OVERALL <AnimatedCounter value={overallStats.percentage} decimals={0} suffix="%" />
-            </Badge>
+            <WeeklySummaryBadge />
           </motion.div>
         </div>
 
@@ -285,8 +363,8 @@ export default function Dashboard() {
           </motion.section>
         )}
 
-        {/* Weekly Summary Widget */}
-        <WeeklySummary />
+        {/* Overall Attendance Widget */}
+        <OverallSummary percentage={overallStats.percentage} present={overallStats.present} total={overallStats.total} />
 
         {/* Today's Schedule */}
         <section>
