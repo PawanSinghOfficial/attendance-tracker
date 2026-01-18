@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { Clock } from "lucide-react";
+import { Clock, Utensils } from "lucide-react";
 import { convertTo12Hour } from "@/lib/attendance-utils";
 
 interface Class {
@@ -25,15 +25,24 @@ interface TimetableGridProps {
   weekDates: Date[];
 }
 
-const TIME_SLOTS = [
-  "08:00 AM",
-  "09:00 AM",
-  "10:00 AM",
-  "11:00 AM",
-  "12:00 PM",
-  "01:00 PM",
-  "02:00 PM",
-];
+const START_HOUR = 8;
+const END_HOUR = 17; // 5 PM
+const SLOT_DURATION = 30; // minutes
+const LUNCH_START = "12:00";
+const LUNCH_END = "12:30";
+
+// Generate time slots
+const TIME_SLOTS: string[] = [];
+for (let h = START_HOUR; h < END_HOUR; h++) {
+  for (let m = 0; m < 60; m += SLOT_DURATION) {
+    const hour = h;
+    const minute = m;
+    const ampm = hour >= 12 ? "PM" : "AM";
+    const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+    const displayMinute = minute === 0 ? "00" : minute;
+    TIME_SLOTS.push(`${displayHour}:${displayMinute} ${ampm}`);
+  }
+}
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -60,9 +69,8 @@ function timeToHour(timeStr: string): number {
 
 // Get the time slot index where a class starts
 function getStartSlotIndex(classStartTime: string): number {
-  const startHour = Math.floor(timeToHour(classStartTime));
-  const baseHour = 8; // 8 AM start
-  return Math.max(0, startHour - baseHour);
+  const startHour = timeToHour(classStartTime);
+  return Math.round((startHour - START_HOUR) * (60 / SLOT_DURATION));
 }
 
 // Calculate how many slots a class spans
@@ -71,8 +79,8 @@ function getSlotSpan(classStartTime: string, classEndTime: string): number {
   const endHour = timeToHour(classEndTime);
   const duration = endHour - startHour;
 
-  // Calculate span in hours, minimum 1
-  return Math.max(1, Math.ceil(duration));
+  // Calculate span in slots
+  return Math.max(1, Math.round(duration * (60 / SLOT_DURATION)));
 }
 
 // Check if this slot should be rendered (not covered by a previous colspan)
@@ -80,9 +88,13 @@ interface SlotInfo {
   render: boolean;
   classData?: Class;
   colspan?: number;
+  isLunch?: boolean;
 }
 
-function getSlotInfo(dayClasses: Class[], slotIndex: number): SlotInfo {
+function getSlotInfo(dayClasses: Class[], slotIndex: number, timeSlot: string): SlotInfo {
+  // Check if it's lunch time (12:00 PM slot)
+  const isLunchSlot = timeSlot.startsWith("12:00");
+
   // Find if any class starts at this slot
   const classAtSlot = dayClasses.find((cls) => {
     const startSlot = getStartSlotIndex(cls.startTime);
@@ -91,7 +103,7 @@ function getSlotInfo(dayClasses: Class[], slotIndex: number): SlotInfo {
 
   if (classAtSlot) {
     const colspan = getSlotSpan(classAtSlot.startTime, classAtSlot.endTime);
-    return { render: true, classData: classAtSlot, colspan };
+    return { render: true, classData: classAtSlot, colspan, isLunch: isLunchSlot };
   }
 
   // Check if this slot is covered by a previous class
@@ -105,7 +117,7 @@ function getSlotInfo(dayClasses: Class[], slotIndex: number): SlotInfo {
     return { render: false }; // Don't render, it's covered by colspan
   }
 
-  return { render: true }; // Render empty cell
+  return { render: true, isLunch: isLunchSlot }; // Render empty cell (or lunch)
 }
 
 export function TimetableGrid({ weeklySchedule, weekDates }: TimetableGridProps) {
@@ -117,29 +129,37 @@ export function TimetableGrid({ weeklySchedule, weekDates }: TimetableGridProps)
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <Card className="overflow-hidden">
-        <div className="overflow-y-auto max-h-[600px]">
-          <div className="w-full">
-            {/* Table Structure */}
+      <Card className="overflow-hidden border-none shadow-md bg-background/50 backdrop-blur-sm">
+        <div className="overflow-x-auto">
+          <div className="min-w-[1000px]"> {/* Ensure minimum width for scrolling */}
             <table className="w-full border-collapse table-fixed">
               <thead>
                 <tr className="border-b bg-muted/30">
-                  <th className="p-2 text-left font-semibold text-xs border-r sticky left-0 top-0 bg-muted/30 z-20 w-16">
+                  <th className="p-3 text-left font-semibold text-xs border-r sticky left-0 top-0 bg-background/95 backdrop-blur z-20 w-24 shadow-[1px_0_5px_rgba(0,0,0,0.05)]">
                     Day
                   </th>
-                  {TIME_SLOTS.map((time) => (
-                    <th
-                      key={time}
-                      className="p-1.5 text-center font-semibold text-[10px] border-r last:border-r-0 sticky top-0 bg-muted/30 z-10"
-                    >
-                      <div className="flex flex-col items-center">
-                        <span className="text-xs">{time.split(" ")[0]}</span>
-                        <span className="text-[9px] text-muted-foreground">
-                          {time.split(" ")[1]}
-                        </span>
-                      </div>
-                    </th>
-                  ))}
+                  {TIME_SLOTS.map((time, index) => {
+                    const isHourStart = index % 2 === 0;
+                    return (
+                      <th
+                        key={time}
+                        className={`p-2 text-center font-semibold text-[10px] border-r last:border-r-0 sticky top-0 bg-muted/30 z-10 w-20 ${
+                          time.startsWith("12:00") ? "bg-orange-50/50 dark:bg-orange-950/10" : ""
+                        }`}
+                      >
+                        <div className="flex flex-col items-center">
+                          <span className={`text-xs ${isHourStart ? "font-bold text-foreground" : "text-muted-foreground font-normal"}`}>
+                            {time.split(" ")[0]}
+                          </span>
+                          {isHourStart && (
+                            <span className="text-[9px] text-muted-foreground">
+                              {time.split(" ")[1]}
+                            </span>
+                          )}
+                        </div>
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
@@ -150,21 +170,23 @@ export function TimetableGrid({ weeklySchedule, weekDates }: TimetableGridProps)
                   return (
                     <tr
                       key={dayIndex}
-                      className={`border-b last:border-b-0 ${isToday ? "bg-primary/5" : ""}`}
+                      className={`border-b last:border-b-0 transition-colors hover:bg-muted/5 ${
+                        isToday ? "bg-primary/5" : ""
+                      }`}
                     >
                       {/* Day Column */}
                       <td
-                        className={`p-2 border-r font-medium sticky left-0 z-10 ${
-                          isToday ? "bg-primary/10" : "bg-background"
+                        className={`p-3 border-r font-medium sticky left-0 z-10 shadow-[1px_0_5px_rgba(0,0,0,0.05)] ${
+                          isToday ? "bg-background/95 backdrop-blur border-l-4 border-l-primary" : "bg-background/95 backdrop-blur"
                         }`}
                       >
                         <div className="flex flex-col">
                           <span
-                            className={`text-[11px] ${isToday ? "text-primary font-semibold" : ""}`}
+                            className={`text-sm ${isToday ? "text-primary font-bold" : ""}`}
                           >
                             {DAYS[date.getDay()]}
                           </span>
-                          <span className="text-[9px] text-muted-foreground">
+                          <span className="text-[10px] text-muted-foreground">
                             {format(date, "MMM d")}
                           </span>
                         </div>
@@ -172,50 +194,59 @@ export function TimetableGrid({ weeklySchedule, weekDates }: TimetableGridProps)
 
                       {/* Time Slot Columns */}
                       {TIME_SLOTS.map((timeSlot, slotIndex) => {
-                        const slotInfo = getSlotInfo(dayClasses, slotIndex);
+                        const slotInfo = getSlotInfo(dayClasses, slotIndex, timeSlot);
 
                         // Skip rendering if covered by previous colspan
                         if (!slotInfo.render) {
                           return null;
                         }
 
-                        // Render cell with class or empty
+                        // Render cell with class
                         if (slotInfo.classData && slotInfo.colspan) {
                           const cls = slotInfo.classData;
                           return (
                             <td
                               key={timeSlot}
                               colSpan={slotInfo.colspan}
-                              className="p-1 border-r align-top"
+                              className="p-1 border-r align-top relative group"
                             >
                               <motion.div
-                                initial={{ scale: 0.8, opacity: 0 }}
+                                initial={{ scale: 0.95, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
                                 transition={{
-                                  delay: dayIndex * 0.03,
+                                  delay: dayIndex * 0.05 + slotIndex * 0.01,
                                 }}
                                 whileHover={{ scale: 1.02, zIndex: 10 }}
-                                className="rounded-md shadow-sm cursor-pointer overflow-hidden p-2 h-full min-h-[70px]"
+                                className="rounded-lg shadow-sm cursor-pointer overflow-hidden p-2 h-full min-h-[80px] border border-white/10 relative"
                                 style={{
                                   backgroundColor: cls.subject?.color || "#8b5cf6",
                                 }}
                               >
-                                <div className="text-white h-full flex flex-col justify-between">
+                                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-50" />
+                                <div className="text-white h-full flex flex-col justify-between relative z-10">
                                   <div>
-                                    <div className="font-semibold text-[11px] leading-tight mb-1 line-clamp-2">
+                                    <div className="font-bold text-xs leading-tight mb-1 line-clamp-2">
                                       {cls.subject?.name || "Unknown"}
                                     </div>
-                                    <Badge
-                                      variant="secondary"
-                                      className="text-[8px] h-4 px-1 bg-white/20 text-white border-none"
-                                    >
-                                      {cls.type}
-                                    </Badge>
+                                    <div className="flex flex-wrap gap-1">
+                                      <Badge
+                                        variant="secondary"
+                                        className="text-[9px] h-4 px-1 bg-white/20 text-white border-none backdrop-blur-sm"
+                                      >
+                                        {cls.type}
+                                      </Badge>
+                                      <Badge
+                                        variant="secondary"
+                                        className="text-[9px] h-4 px-1 bg-black/20 text-white border-none backdrop-blur-sm"
+                                      >
+                                        {cls.subject?.code}
+                                      </Badge>
+                                    </div>
                                   </div>
-                                  <div className="flex items-center gap-0.5 text-[9px] opacity-90 mt-1">
+                                  <div className="flex items-center gap-1 text-[10px] opacity-90 mt-1 font-medium bg-black/10 w-fit px-1.5 py-0.5 rounded-full">
                                     <Clock size={10} />
                                     <span className="truncate">
-                                      {convertTo12Hour(cls.startTime).replace(" ", "")}-{convertTo12Hour(cls.endTime).replace(" ", "")}
+                                      {convertTo12Hour(cls.startTime).replace(" ", "")} - {convertTo12Hour(cls.endTime).replace(" ", "")}
                                     </span>
                                   </div>
                                 </div>
@@ -224,14 +255,41 @@ export function TimetableGrid({ weeklySchedule, weekDates }: TimetableGridProps)
                           );
                         }
 
+                        // Render Lunch Break
+                        if (slotInfo.isLunch) {
+                          return (
+                            <td
+                              key={timeSlot}
+                              className="p-0 border-r align-top bg-orange-50/30 dark:bg-orange-950/10 relative overflow-hidden"
+                            >
+                              <div className="h-full min-h-[80px] flex flex-col items-center justify-center gap-1 opacity-50 group hover:opacity-100 transition-opacity">
+                                <motion.div
+                                  animate={{ 
+                                    rotate: [0, 10, -10, 0],
+                                    y: [0, -2, 0]
+                                  }}
+                                  transition={{ 
+                                    duration: 4,
+                                    repeat: Infinity,
+                                    repeatType: "reverse"
+                                  }}
+                                >
+                                  <Utensils size={14} className="text-orange-400" />
+                                </motion.div>
+                                <span className="text-[9px] font-medium text-orange-400/80 uppercase tracking-wider rotate-0">Lunch</span>
+                              </div>
+                            </td>
+                          );
+                        }
+
                         // Render empty cell
                         return (
                           <td
                             key={timeSlot}
-                            className="p-1 border-r last:border-r-0 align-top"
+                            className="p-1 border-r last:border-r-0 align-top hover:bg-muted/10 transition-colors"
                           >
-                            <div className="h-[70px] flex items-center justify-center">
-                              <span className="text-xs text-muted-foreground/30">—</span>
+                            <div className="h-[80px] flex items-center justify-center">
+                              {/* Optional: Add subtle pattern or lines */}
                             </div>
                           </td>
                         );
@@ -245,19 +303,19 @@ export function TimetableGrid({ weeklySchedule, weekDates }: TimetableGridProps)
         </div>
 
         {/* Legend */}
-        <div className="border-t p-3 bg-muted/20">
-          <div className="flex items-center gap-3 text-[10px] text-muted-foreground flex-wrap">
+        <div className="border-t p-3 bg-muted/20 backdrop-blur-sm">
+          <div className="flex items-center gap-4 text-[10px] text-muted-foreground flex-wrap">
             <div className="flex items-center gap-1.5">
               <div className="w-2.5 h-2.5 rounded bg-primary/10 border border-primary" />
               <span>Today</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded bg-purple-500" />
-              <span>Color-coded</span>
+              <div className="w-2.5 h-2.5 rounded bg-purple-500 shadow-sm" />
+              <span>Class</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Clock size={10} />
-              <span>Full duration</span>
+              <div className="w-2.5 h-2.5 rounded bg-orange-100 border border-orange-200 dark:bg-orange-900/20 dark:border-orange-800" />
+              <span>Lunch Break</span>
             </div>
           </div>
         </div>
