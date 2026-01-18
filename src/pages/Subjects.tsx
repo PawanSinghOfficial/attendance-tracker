@@ -73,6 +73,7 @@ export default function Subjects() {
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("10:00");
   const [classType, setClassType] = useState("LECTURE");
+  const [room, setRoom] = useState("");
 
   const handleCreateSubject = async () => {
     if (!subjectName || !subjectCode) {
@@ -108,6 +109,7 @@ export default function Subjects() {
         startTime,
         endTime,
         type: classType,
+        room: room || undefined,
       });
       toast.success("Class added");
       setIsClassDialogOpen(false);
@@ -225,6 +227,7 @@ export default function Subjects() {
     setStartTime("09:00");
     setEndTime("10:00");
     setClassType("LECTURE");
+    setRoom("");
   };
 
   if (!subjects || !weeklySchedule) {
@@ -530,6 +533,15 @@ export default function Subjects() {
                                 </div>
                               </div>
                               <div>
+                                <Label htmlFor="room">Room Number (Optional)</Label>
+                                <Input
+                                  id="room"
+                                  value={room}
+                                  onChange={(e) => setRoom(e.target.value)}
+                                  placeholder="e.g., 301, Lab 2"
+                                />
+                              </div>
+                              <div>
                                 <Label htmlFor="type">Type</Label>
                                 <select
                                   id="type"
@@ -581,6 +593,11 @@ export default function Subjects() {
                                           {cls.subject?.name || "Unknown"}
                                         </h4>
                                         <Badge variant="secondary">{cls.type}</Badge>
+                                        {cls.room && (
+                                          <Badge variant="outline" className="ml-2">
+                                            Room {cls.room}
+                                          </Badge>
+                                        )}
                                       </div>
                                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                         <Clock size={16} />

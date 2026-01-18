@@ -39,6 +39,7 @@ export const create = mutation({
     startTime: v.string(),
     endTime: v.string(),
     type: v.string(),
+    room: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("classes", {
@@ -47,6 +48,7 @@ export const create = mutation({
       startTime: args.startTime,
       endTime: args.endTime,
       type: args.type,
+      room: args.room,
     });
   },
 });
@@ -60,6 +62,7 @@ export const update = mutation({
     startTime: v.optional(v.string()),
     endTime: v.optional(v.string()),
     type: v.optional(v.string()),
+    room: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;

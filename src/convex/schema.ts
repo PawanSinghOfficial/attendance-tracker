@@ -49,6 +49,7 @@ const schema = defineSchema(
       startTime: v.string(), // Format: "HH:mm" (e.g., "09:00")
       endTime: v.string(), // Format: "HH:mm" (e.g., "10:00")
       type: v.string(), // "LECTURE", "LAB", "TUTORIAL"
+      room: v.optional(v.string()), // Room number
     }).index("by_subject", ["subjectId"])
       .index("by_day", ["dayOfWeek"]),
 

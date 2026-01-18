@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { Clock, Utensils } from "lucide-react";
+import { Clock, Utensils, MapPin } from "lucide-react";
 import { convertTo12Hour } from "@/lib/attendance-utils";
 
 interface Class {
@@ -18,6 +18,7 @@ interface Class {
   startTime: string;
   endTime: string;
   type: string;
+  room?: string;
 }
 
 interface TimetableGridProps {
@@ -256,6 +257,12 @@ export function TimetableGrid({ weeklySchedule, weekDates }: TimetableGridProps)
                                     >
                                       {cls.type}
                                     </Badge>
+                                    {cls.room && (
+                                      <div className="flex items-center gap-0.5 text-[9px] bg-white/20 px-1 rounded text-white/90">
+                                        <MapPin size={8} />
+                                        <span>{cls.room}</span>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-1 text-[10px] opacity-90 mt-1 font-medium bg-black/10 w-fit px-1.5 py-0.5 rounded-full">
