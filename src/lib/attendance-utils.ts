@@ -107,13 +107,14 @@ export function calculateStreak(records: AttendanceRecord[]): number {
   return streak;
 }
 
-// Get current week dates (Sunday to Saturday)
+// Get current week dates (Monday to Saturday, excluding Sunday)
 export function getCurrentWeekDates(): Date[] {
   const today = new Date();
   const start = startOfWeek(today, { weekStartsOn: 0 }); // Sunday
   const dates: Date[] = [];
 
-  for (let i = 0; i < 7; i++) {
+  // Start from Monday (i=1) to Saturday (i=6), skip Sunday (i=0)
+  for (let i = 1; i < 7; i++) {
     dates.push(addDays(start, i));
   }
 

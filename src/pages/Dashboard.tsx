@@ -537,7 +537,7 @@ export default function Dashboard() {
             <h2 className="text-2xl font-semibold">This Week's Schedule</h2>
             <div className="flex items-center gap-3">
               <Badge variant="outline" className="text-sm">
-                {weekDates[0] && format(weekDates[0], "MMM d")} - {weekDates[6] && format(weekDates[6], "MMM d")}
+                {weekDates[0] && format(weekDates[0], "MMM d")} - {weekDates[5] && format(weekDates[5], "MMM d")}
               </Badge>
               <div className="flex items-center gap-2 bg-muted p-1 rounded-lg">
                 <Button
