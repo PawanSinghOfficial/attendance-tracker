@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Clock } from "lucide-react";
+import { convertTo12Hour } from "@/lib/attendance-utils";
 
 interface Class {
   _id: string;
@@ -36,18 +37,25 @@ const TIME_SLOTS = [
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-// Helper function to convert time string to hour
+// Helper function to convert time string to hour (handles both 24-hour and 12-hour formats)
 function timeToHour(timeStr: string): number {
-  const [time, period] = timeStr.split(" ");
-  let [hours, minutes] = time.split(":").map(Number);
+  // Check if it's 12-hour format (has AM/PM)
+  if (timeStr.includes(" ")) {
+    const [time, period] = timeStr.split(" ");
+    let [hours, minutes] = time.split(":").map(Number);
 
-  if (period === "PM" && hours !== 12) {
-    hours += 12;
-  } else if (period === "AM" && hours === 12) {
-    hours = 0;
+    if (period === "PM" && hours !== 12) {
+      hours += 12;
+    } else if (period === "AM" && hours === 12) {
+      hours = 0;
+    }
+
+    return hours + minutes / 60;
+  } else {
+    // 24-hour format
+    const [hours, minutes] = timeStr.split(":").map(Number);
+    return hours + minutes / 60;
   }
-
-  return hours + minutes / 60;
 }
 
 // Get the time slot index where a class starts
@@ -207,7 +215,7 @@ export function TimetableGrid({ weeklySchedule, weekDates }: TimetableGridProps)
                                   <div className="flex items-center gap-0.5 text-[9px] opacity-90 mt-1">
                                     <Clock size={10} />
                                     <span className="truncate">
-                                      {cls.startTime.split(" ")[0]}-{cls.endTime.split(" ")[0]}
+                                      {convertTo12Hour(cls.startTime).replace(" ", "")}-{convertTo12Hour(cls.endTime).replace(" ", "")}
                                     </span>
                                   </div>
                                 </div>
