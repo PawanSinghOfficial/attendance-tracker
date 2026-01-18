@@ -34,7 +34,7 @@ import { WeeklySummary } from "@/components/WeeklySummary";
 import { PageTransition } from "@/components/PageTransition";
 import { TimetableGrid } from "@/components/TimetableGrid";
 
-// Weekly Summary Badge Component
+// Weekly Summary Badge Component for top right
 function WeeklySummaryBadge() {
   const attendance = useQuery(api.attendance.list);
   const classes = useQuery(api.classes.list);
