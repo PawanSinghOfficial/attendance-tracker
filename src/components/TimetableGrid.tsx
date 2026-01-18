@@ -263,7 +263,7 @@ export function TimetableGrid({ weeklySchedule, weekDates }: TimetableGridProps)
                                 <div className="flex items-center gap-1 text-[10px] opacity-90 mt-1 font-medium bg-black/10 w-fit px-1.5 py-0.5 rounded-full">
                                   <Clock size={10} />
                                   <span className="truncate">
-                                    {convertTo12Hour(cls.startTime).replace(" ", "")}
+                                    {convertTo12Hour(cls.startTime).replace(" ", "")} - {convertTo12Hour(cls.endTime).replace(" ", "")}
                                   </span>
                                 </div>
                               </div>

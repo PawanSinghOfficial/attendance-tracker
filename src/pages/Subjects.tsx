@@ -37,6 +37,9 @@ const COLORS = [
   "#4f46e5", // Indigo
   "#84cc16", // Lime
   "#ea580c", // Deep Orange
+  "#14b8a6", // Teal
+  "#d946ef", // Fuchsia
+  "#f43f5e", // Rose
 ];
 
 export default function Subjects() {
