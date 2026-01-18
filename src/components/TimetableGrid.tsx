@@ -25,65 +25,80 @@ interface TimetableGridProps {
   weekDates: Date[];
 }
 
-const START_HOUR = 8;
-const END_HOUR = 17; // 5 PM
-const SLOT_DURATION = 30; // minutes
-const LUNCH_START = "12:00";
-const LUNCH_END = "12:30";
-
-// Generate time slots
-const TIME_SLOTS: string[] = [];
-for (let h = START_HOUR; h < END_HOUR; h++) {
-  for (let m = 0; m < 60; m += SLOT_DURATION) {
-    const hour = h;
-    const minute = m;
-    const ampm = hour >= 12 ? "PM" : "AM";
-    const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
-    const displayMinute = minute === 0 ? "00" : minute;
-    TIME_SLOTS.push(`${displayHour}:${displayMinute} ${ampm}`);
-  }
-}
+// Configuration for the grid columns
+// Before lunch: 1 hour intervals
+// Lunch: 12:00 - 12:30
+// After lunch: 30 min intervals
+const GRID_CONFIG = [
+  { label: "08:00", start: 8, duration: 60 },
+  { label: "09:00", start: 9, duration: 60 },
+  { label: "10:00", start: 10, duration: 60 },
+  { label: "11:00", start: 11, duration: 60 },
+  { label: "12:00", start: 12, duration: 30, isLunch: true },
+  { label: "12:30", start: 12.5, duration: 30 },
+  { label: "01:00", start: 13, duration: 30 },
+  { label: "01:30", start: 13.5, duration: 30 },
+  { label: "02:00", start: 14, duration: 30 },
+  { label: "02:30", start: 14.5, duration: 30 },
+  { label: "03:00", start: 15, duration: 30 },
+  { label: "03:30", start: 15.5, duration: 30 },
+  { label: "04:00", start: 16, duration: 30 },
+  { label: "04:30", start: 16.5, duration: 30 },
+];
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-// Helper function to convert time string to hour (handles both 24-hour and 12-hour formats)
+// Helper function to convert time string to hour
 function timeToHour(timeStr: string): number {
-  // Check if it's 12-hour format (has AM/PM)
   if (timeStr.includes(" ")) {
     const [time, period] = timeStr.split(" ");
     let [hours, minutes] = time.split(":").map(Number);
-
-    if (period === "PM" && hours !== 12) {
-      hours += 12;
-    } else if (period === "AM" && hours === 12) {
-      hours = 0;
-    }
-
+    if (period === "PM" && hours !== 12) hours += 12;
+    else if (period === "AM" && hours === 12) hours = 0;
     return hours + minutes / 60;
   } else {
-    // 24-hour format
     const [hours, minutes] = timeStr.split(":").map(Number);
     return hours + minutes / 60;
   }
 }
 
-// Get the time slot index where a class starts
-function getStartSlotIndex(classStartTime: string): number {
-  const startHour = timeToHour(classStartTime);
-  return Math.round((startHour - START_HOUR) * (60 / SLOT_DURATION));
+// Get the column index for a given time
+function getSlotIndex(timeStr: string): number {
+  const hour = timeToHour(timeStr);
+  
+  // Find the slot that contains this time
+  const index = GRID_CONFIG.findIndex(slot => {
+    const slotEnd = slot.start + (slot.duration / 60);
+    return hour >= slot.start && hour < slotEnd;
+  });
+
+  // If exact match not found (e.g. starts before 8am), clamp to 0
+  if (index === -1) {
+    if (hour < GRID_CONFIG[0].start) return 0;
+    return GRID_CONFIG.length - 1;
+  }
+  
+  return index;
 }
 
-// Calculate how many slots a class spans
-function getSlotSpan(classStartTime: string, classEndTime: string): number {
-  const startHour = timeToHour(classStartTime);
-  const endHour = timeToHour(classEndTime);
-  const duration = endHour - startHour;
-
-  // Calculate span in slots
-  return Math.max(1, Math.round(duration * (60 / SLOT_DURATION)));
+// Calculate colspan based on duration and grid config
+function getColSpan(startTime: string, endTime: string): number {
+  const startIdx = getSlotIndex(startTime);
+  const endHour = timeToHour(endTime);
+  
+  let colspan = 0;
+  let currentIdx = startIdx;
+  
+  while (currentIdx < GRID_CONFIG.length) {
+    const slot = GRID_CONFIG[currentIdx];
+    if (slot.start >= endHour) break;
+    colspan++;
+    currentIdx++;
+  }
+  
+  return Math.max(1, colspan);
 }
 
-// Check if this slot should be rendered (not covered by a previous colspan)
 interface SlotInfo {
   render: boolean;
   classData?: Class;
@@ -91,33 +106,37 @@ interface SlotInfo {
   isLunch?: boolean;
 }
 
-function getSlotInfo(dayClasses: Class[], slotIndex: number, timeSlot: string): SlotInfo {
-  // Check if it's lunch time (12:00 PM slot)
-  const isLunchSlot = timeSlot.startsWith("12:00");
+function getSlotInfo(dayClasses: Class[], slotIndex: number): SlotInfo {
+  const slotConfig = GRID_CONFIG[slotIndex];
+  
+  if (slotConfig.isLunch) {
+    return { render: true, isLunch: true };
+  }
 
   // Find if any class starts at this slot
+  // We need to handle classes that might start in the middle of a 1h slot by mapping them to the slot start
   const classAtSlot = dayClasses.find((cls) => {
-    const startSlot = getStartSlotIndex(cls.startTime);
-    return startSlot === slotIndex;
+    const clsStartIdx = getSlotIndex(cls.startTime);
+    return clsStartIdx === slotIndex;
   });
 
   if (classAtSlot) {
-    const colspan = getSlotSpan(classAtSlot.startTime, classAtSlot.endTime);
-    return { render: true, classData: classAtSlot, colspan, isLunch: isLunchSlot };
+    const colspan = getColSpan(classAtSlot.startTime, classAtSlot.endTime);
+    return { render: true, classData: classAtSlot, colspan };
   }
 
   // Check if this slot is covered by a previous class
   const coveringClass = dayClasses.find((cls) => {
-    const startSlot = getStartSlotIndex(cls.startTime);
-    const span = getSlotSpan(cls.startTime, cls.endTime);
-    return slotIndex > startSlot && slotIndex < startSlot + span;
+    const startIdx = getSlotIndex(cls.startTime);
+    const span = getColSpan(cls.startTime, cls.endTime);
+    return slotIndex > startIdx && slotIndex < startIdx + span;
   });
 
   if (coveringClass) {
-    return { render: false }; // Don't render, it's covered by colspan
+    return { render: false };
   }
 
-  return { render: true, isLunch: isLunchSlot }; // Render empty cell (or lunch)
+  return { render: true };
 }
 
 export function TimetableGrid({ weeklySchedule, weekDates }: TimetableGridProps) {
@@ -130,176 +149,148 @@ export function TimetableGrid({ weeklySchedule, weekDates }: TimetableGridProps)
       transition={{ duration: 0.3 }}
     >
       <Card className="overflow-hidden border-none shadow-md bg-background/50 backdrop-blur-sm">
-        <div className="overflow-x-auto">
-          <div className="min-w-[1000px]"> {/* Ensure minimum width for scrolling */}
-            <table className="w-full border-collapse table-fixed">
-              <thead>
-                <tr className="border-b bg-muted/30">
-                  <th className="p-3 text-left font-semibold text-xs border-r sticky left-0 top-0 bg-background/95 backdrop-blur z-20 w-24 shadow-[1px_0_5px_rgba(0,0,0,0.05)]">
-                    Day
+        <div className="w-full">
+          <table className="w-full border-collapse table-fixed">
+            <thead>
+              <tr className="border-b bg-muted/30">
+                <th className="p-3 text-left font-semibold text-xs border-r w-20 bg-background/95 backdrop-blur">
+                  Day
+                </th>
+                {GRID_CONFIG.map((slot, index) => (
+                  <th
+                    key={index}
+                    className={`p-2 text-center font-semibold text-[10px] border-r last:border-r-0 ${
+                      slot.isLunch ? "bg-orange-50/50 dark:bg-orange-950/10 w-16" : "w-auto"
+                    }`}
+                  >
+                    {slot.isLunch ? (
+                      <div className="flex flex-col items-center justify-center h-full text-orange-500">
+                        <Utensils size={14} className="mb-1" />
+                        <span className="text-[9px] uppercase tracking-wider font-bold">Lunch</span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center">
+                        <span className="text-xs font-medium text-foreground">
+                          {slot.label.split(" ")[0]}
+                        </span>
+                        <span className="text-[9px] text-muted-foreground">
+                          {slot.label.split(" ")[1]}
+                        </span>
+                      </div>
+                    )}
                   </th>
-                  {TIME_SLOTS.map((time, index) => {
-                    const isHourStart = index % 2 === 0;
-                    return (
-                      <th
-                        key={time}
-                        className={`p-2 text-center font-semibold text-[10px] border-r last:border-r-0 sticky top-0 bg-muted/30 z-10 w-20 ${
-                          time.startsWith("12:00") ? "bg-orange-50/50 dark:bg-orange-950/10" : ""
-                        }`}
-                      >
-                        <div className="flex flex-col items-center">
-                          <span className={`text-xs ${isHourStart ? "font-bold text-foreground" : "text-muted-foreground font-normal"}`}>
-                            {time.split(" ")[0]}
-                          </span>
-                          {isHourStart && (
-                            <span className="text-[9px] text-muted-foreground">
-                              {time.split(" ")[1]}
-                            </span>
-                          )}
-                        </div>
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
-              <tbody>
-                {weekDates.map((date, dayIndex) => {
-                  const dayClasses = weeklySchedule[date.getDay()] || [];
-                  const isToday = date.getDay() === today;
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {weekDates.map((date, dayIndex) => {
+                const dayClasses = weeklySchedule[date.getDay()] || [];
+                const isToday = date.getDay() === today;
 
-                  return (
-                    <tr
-                      key={dayIndex}
-                      className={`border-b last:border-b-0 transition-colors hover:bg-muted/5 ${
-                        isToday ? "bg-primary/5" : ""
+                return (
+                  <tr
+                    key={dayIndex}
+                    className={`border-b last:border-b-0 transition-colors hover:bg-muted/5 ${
+                      isToday ? "bg-primary/5" : ""
+                    }`}
+                  >
+                    {/* Day Column */}
+                    <td
+                      className={`p-3 border-r font-medium ${
+                        isToday ? "bg-background/95 backdrop-blur border-l-4 border-l-primary" : "bg-background/95 backdrop-blur"
                       }`}
                     >
-                      {/* Day Column */}
-                      <td
-                        className={`p-3 border-r font-medium sticky left-0 z-10 shadow-[1px_0_5px_rgba(0,0,0,0.05)] ${
-                          isToday ? "bg-background/95 backdrop-blur border-l-4 border-l-primary" : "bg-background/95 backdrop-blur"
-                        }`}
-                      >
-                        <div className="flex flex-col">
-                          <span
-                            className={`text-sm ${isToday ? "text-primary font-bold" : ""}`}
-                          >
-                            {DAYS[date.getDay()]}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">
-                            {format(date, "MMM d")}
-                          </span>
-                        </div>
-                      </td>
+                      <div className="flex flex-col">
+                        <span
+                          className={`text-sm ${isToday ? "text-primary font-bold" : ""}`}
+                        >
+                          {DAYS[date.getDay()]}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {format(date, "MMM d")}
+                        </span>
+                      </div>
+                    </td>
 
-                      {/* Time Slot Columns */}
-                      {TIME_SLOTS.map((timeSlot, slotIndex) => {
-                        const slotInfo = getSlotInfo(dayClasses, slotIndex, timeSlot);
+                    {/* Time Slot Columns */}
+                    {GRID_CONFIG.map((slot, slotIndex) => {
+                      const slotInfo = getSlotInfo(dayClasses, slotIndex);
 
-                        // Skip rendering if covered by previous colspan
-                        if (!slotInfo.render) {
-                          return null;
-                        }
+                      if (!slotInfo.render) return null;
 
-                        // Render cell with class
-                        if (slotInfo.classData && slotInfo.colspan) {
-                          const cls = slotInfo.classData;
-                          return (
-                            <td
-                              key={timeSlot}
-                              colSpan={slotInfo.colspan}
-                              className="p-1 border-r align-top relative group"
-                            >
-                              <motion.div
-                                initial={{ scale: 0.95, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                transition={{
-                                  delay: dayIndex * 0.05 + slotIndex * 0.01,
-                                }}
-                                whileHover={{ scale: 1.02, zIndex: 10 }}
-                                className="rounded-lg shadow-sm cursor-pointer overflow-hidden p-2 h-full min-h-[80px] border border-white/10 relative"
-                                style={{
-                                  backgroundColor: cls.subject?.color || "#8b5cf6",
-                                }}
-                              >
-                                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-50" />
-                                <div className="text-white h-full flex flex-col justify-between relative z-10">
-                                  <div>
-                                    <div className="font-bold text-xs leading-tight mb-1 line-clamp-2">
-                                      {cls.subject?.name || "Unknown"}
-                                    </div>
-                                    <div className="flex flex-wrap gap-1">
-                                      <Badge
-                                        variant="secondary"
-                                        className="text-[9px] h-4 px-1 bg-white/20 text-white border-none backdrop-blur-sm"
-                                      >
-                                        {cls.type}
-                                      </Badge>
-                                      <Badge
-                                        variant="secondary"
-                                        className="text-[9px] h-4 px-1 bg-black/20 text-white border-none backdrop-blur-sm"
-                                      >
-                                        {cls.subject?.code}
-                                      </Badge>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-1 text-[10px] opacity-90 mt-1 font-medium bg-black/10 w-fit px-1.5 py-0.5 rounded-full">
-                                    <Clock size={10} />
-                                    <span className="truncate">
-                                      {convertTo12Hour(cls.startTime).replace(" ", "")} - {convertTo12Hour(cls.endTime).replace(" ", "")}
-                                    </span>
-                                  </div>
-                                </div>
-                              </motion.div>
-                            </td>
-                          );
-                        }
-
-                        // Render Lunch Break
-                        if (slotInfo.isLunch) {
-                          return (
-                            <td
-                              key={timeSlot}
-                              className="p-0 border-r align-top bg-orange-50/30 dark:bg-orange-950/10 relative overflow-hidden"
-                            >
-                              <div className="h-full min-h-[80px] flex flex-col items-center justify-center gap-1 opacity-50 group hover:opacity-100 transition-opacity">
-                                <motion.div
-                                  animate={{ 
-                                    rotate: [0, 10, -10, 0],
-                                    y: [0, -2, 0]
-                                  }}
-                                  transition={{ 
-                                    duration: 4,
-                                    repeat: Infinity,
-                                    repeatType: "reverse"
-                                  }}
-                                >
-                                  <Utensils size={14} className="text-orange-400" />
-                                </motion.div>
-                                <span className="text-[9px] font-medium text-orange-400/80 uppercase tracking-wider rotate-0">Lunch</span>
-                              </div>
-                            </td>
-                          );
-                        }
-
-                        // Render empty cell
+                      if (slotInfo.isLunch) {
                         return (
                           <td
-                            key={timeSlot}
-                            className="p-1 border-r last:border-r-0 align-top hover:bg-muted/10 transition-colors"
+                            key={slotIndex}
+                            className="p-0 border-r align-top bg-orange-50/30 dark:bg-orange-950/10 border-b-0"
                           >
-                            <div className="h-[80px] flex items-center justify-center">
-                              {/* Optional: Add subtle pattern or lines */}
-                            </div>
+                            {/* Continuous visual strip for lunch */}
+                            <div className="h-full min-h-[80px] w-full opacity-20 bg-orange-100/50 dark:bg-orange-900/20"></div>
                           </td>
                         );
-                      })}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      }
+
+                      if (slotInfo.classData && slotInfo.colspan) {
+                        const cls = slotInfo.classData;
+                        return (
+                          <td
+                            key={slotIndex}
+                            colSpan={slotInfo.colspan}
+                            className="p-1 border-r align-top relative group"
+                          >
+                            <motion.div
+                              initial={{ scale: 0.95, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              transition={{
+                                delay: dayIndex * 0.05 + slotIndex * 0.01,
+                              }}
+                              whileHover={{ scale: 1.02, zIndex: 10 }}
+                              className="rounded-lg shadow-sm cursor-pointer overflow-hidden p-2 h-full min-h-[80px] border border-white/10 relative"
+                              style={{
+                                backgroundColor: cls.subject?.color || "#8b5cf6",
+                              }}
+                            >
+                              <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-50" />
+                              <div className="text-white h-full flex flex-col justify-between relative z-10">
+                                <div>
+                                  <div className="font-bold text-xs leading-tight mb-1 line-clamp-2">
+                                    {cls.subject?.name || "Unknown"}
+                                  </div>
+                                  <div className="flex flex-wrap gap-1">
+                                    <Badge
+                                      variant="secondary"
+                                      className="text-[9px] h-4 px-1 bg-white/20 text-white border-none backdrop-blur-sm"
+                                    >
+                                      {cls.type}
+                                    </Badge>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-1 text-[10px] opacity-90 mt-1 font-medium bg-black/10 w-fit px-1.5 py-0.5 rounded-full">
+                                  <Clock size={10} />
+                                  <span className="truncate">
+                                    {convertTo12Hour(cls.startTime).replace(" ", "")}
+                                  </span>
+                                </div>
+                              </div>
+                            </motion.div>
+                          </td>
+                        );
+                      }
+
+                      return (
+                        <td
+                          key={slotIndex}
+                          className="p-1 border-r last:border-r-0 align-top hover:bg-muted/10 transition-colors"
+                        >
+                          <div className="h-[80px]"></div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
 
         {/* Legend */}

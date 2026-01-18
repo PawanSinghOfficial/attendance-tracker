@@ -34,6 +34,9 @@ const COLORS = [
   "#f59e0b", // Amber
   "#ef4444", // Red
   "#ec4899", // Pink
+  "#4f46e5", // Indigo
+  "#84cc16", // Lime
+  "#ea580c", // Deep Orange
 ];
 
 export default function Subjects() {
