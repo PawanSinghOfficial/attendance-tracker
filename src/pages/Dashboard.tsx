@@ -35,6 +35,8 @@ import { WeeklySummary } from "@/components/WeeklySummary";
 import { PageTransition } from "@/components/PageTransition";
 import { TimetableGrid } from "@/components/TimetableGrid";
 import { FeatureTourChatbot } from "@/components/FeatureTourChatbot";
+import { useConvexAuth } from "convex/react";
+import { Navigate } from "react-router";
 
 // Weekly Summary Badge Component for top right
 function WeeklySummaryBadge() {
@@ -120,6 +122,7 @@ function OverallSummary({ percentage, present, total }: { percentage: number; pr
 }
 
 export default function Dashboard() {
+  const { isAuthenticated, isLoading } = useConvexAuth();
   const subjects = useQuery(api.subjects.list);
   const weeklySchedule = useQuery(api.classes.getWeeklySchedule);
   const allAttendance = useQuery(api.attendance.list);
@@ -127,6 +130,20 @@ export default function Dashboard() {
   const settings = useQuery(api.settings.get);
   const markAttendance = useMutation(api.attendance.mark);
   const resetAllAttendance = useMutation(api.attendance.resetAll);
+
+  if (isLoading) {
+    return (
+      <PageTransition>
+        <AppLayout>
+          <DashboardSkeleton />
+        </AppLayout>
+      </PageTransition>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/auth" />;
+  }
 
   const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set());
   const [showCalendar, setShowCalendar] = useState(false);
