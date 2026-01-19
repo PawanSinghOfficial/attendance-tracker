@@ -11,6 +11,8 @@ import {
   ChevronLeft,
   Sparkles,
   RotateCw,
+  HelpCircle,
+  Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -202,13 +204,10 @@ export function FeatureTourChatbot() {
     // Check if user has seen the tour
     const tourSeen = localStorage.getItem("attendanceTrackerTourSeen");
     if (!tourSeen) {
-      // Auto-open tour for first-time users after 2 seconds
-      const timer = setTimeout(() => {
-        setIsOpen(true);
-      }, 2000);
-      return () => clearTimeout(timer);
+      setHasSeenTour(false);
+    } else {
+      setHasSeenTour(true);
     }
-    setHasSeenTour(true);
   }, []);
 
   useEffect(() => {
@@ -294,32 +293,53 @@ export function FeatureTourChatbot() {
 
   return (
     <>
-      {/* Floating Chat Button */}
-      <AnimatePresence>
-        {!isOpen && (
-          <motion.div
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
-            className="fixed bottom-28 right-6 z-50"
-          >
-            <Button
-              onClick={handleOpen}
-              size="lg"
-              className="rounded-full h-14 w-14 shadow-lg bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
-            >
-              <MessageCircle size={24} />
-            </Button>
-            {!hasSeenTour && (
-              <motion.div
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ repeat: Infinity, duration: 2 }}
-                className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full"
-              />
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Floating Help Button - Bottom Left (Below Settings in Sidebar) */}
+      <motion.div
+        className="hidden md:flex fixed bottom-6 left-4 z-40"
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
+      >
+        <motion.button
+          onClick={handleOpen}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+          className="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white shadow-lg relative group transition-all duration-200"
+          title="Feature Guide"
+        >
+          <HelpCircle size={22} />
+          {!hasSeenTour && (
+            <motion.div
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ repeat: Infinity, duration: 2 }}
+              className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"
+            />
+          )}
+        </motion.button>
+      </motion.div>
+
+      {/* Mobile Help Button - Bottom Right */}
+      <motion.div
+        className="md:hidden fixed bottom-24 right-6 z-40"
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
+      >
+        <Button
+          onClick={handleOpen}
+          size="lg"
+          className="rounded-full h-12 w-12 shadow-lg bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 relative"
+        >
+          <HelpCircle size={22} />
+          {!hasSeenTour && (
+            <motion.div
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ repeat: Infinity, duration: 2 }}
+              className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"
+            />
+          )}
+        </Button>
+      </motion.div>
 
       {/* Chatbot Panel */}
       <AnimatePresence>
@@ -337,10 +357,10 @@ export function FeatureTourChatbot() {
             )}
 
             <motion.div
-              initial={{ opacity: 0, y: 100, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 100, scale: 0.9 }}
-              className="fixed bottom-6 right-6 z-[1001] w-96 max-w-[calc(100vw-3rem)]"
+              initial={{ opacity: 0, x: -100, scale: 0.9 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: -100, scale: 0.9 }}
+              className="fixed bottom-20 left-6 md:left-20 z-[1001] w-96 max-w-[calc(100vw-3rem)] md:max-w-[calc(100vw-10rem)]"
             >
               <Card className="shadow-2xl border-2 border-purple-200 overflow-hidden">
                 {/* Header */}
