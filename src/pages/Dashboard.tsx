@@ -34,6 +34,7 @@ import { ClassReminders } from "@/components/ClassReminders";
 import { WeeklySummary } from "@/components/WeeklySummary";
 import { PageTransition } from "@/components/PageTransition";
 import { TimetableGrid } from "@/components/TimetableGrid";
+import { FeatureTourChatbot } from "@/components/FeatureTourChatbot";
 
 // Weekly Summary Badge Component for top right
 function WeeklySummaryBadge() {
@@ -321,7 +322,7 @@ export default function Dashboard() {
       <AppLayout>
         <div className="max-w-7xl mx-auto space-y-8 fade-in">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between dashboard-header">
           <div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-[oklch(var(--gradient-2))] to-[oklch(var(--gradient-3))] bg-clip-text text-transparent">
               Dashboard
@@ -375,10 +376,12 @@ export default function Dashboard() {
         )}
 
         {/* Overall Attendance Widget */}
-        <OverallSummary percentage={overallStats.percentage} present={overallStats.present} total={overallStats.total} />
+        <div className="overall-summary">
+          <OverallSummary percentage={overallStats.percentage} present={overallStats.present} total={overallStats.total} />
+        </div>
 
         {/* Today's Schedule */}
-        <section>
+        <section className="today-schedule">
           <h2 className="text-2xl font-semibold mb-4">Today's Schedule</h2>
           {todayClasses.length === 0 ? (
             <Card>
@@ -485,7 +488,7 @@ export default function Dashboard() {
         </section>
 
         {/* Upcoming Days - Next 6 Days */}
-        <section>
+        <section className="upcoming-days">
           <Collapsible open={showUpcomingDays} onOpenChange={setShowUpcomingDays}>
             <CollapsibleTrigger asChild>
               <Button
@@ -629,7 +632,7 @@ export default function Dashboard() {
         </section>
 
         {/* This Week's Schedule */}
-        <section>
+        <section className="weekly-schedule">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-semibold">This Week's Schedule</h2>
             <div className="flex items-center gap-3">
@@ -842,7 +845,7 @@ export default function Dashboard() {
 
         {/* Smart Suggestions */}
         {(subjectsNeedingAttention.length > 0 || subjectsMayNotReach.length > 0) && (
-          <section>
+          <section className="smart-suggestions">
             <h2 className="text-2xl font-semibold mb-4">Smart Suggestions</h2>
             <div className="grid gap-4 md:grid-cols-2">
               {subjectsNeedingAttention.length > 0 && (
@@ -900,7 +903,7 @@ export default function Dashboard() {
         )}
 
         {/* Your Subjects */}
-        <section>
+        <section className="subjects-section">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-semibold">Your Subjects</h2>
             <Button
@@ -1081,8 +1084,13 @@ export default function Dashboard() {
           )}
         </section>
       </div>
-      <QuickActionsButton />
-      <ClassReminders />
+      <div className="quick-actions">
+        <QuickActionsButton />
+      </div>
+      <div className="class-reminders">
+        <ClassReminders />
+      </div>
+      <FeatureTourChatbot />
       </AppLayout>
     </PageTransition>
   );
