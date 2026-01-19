@@ -186,10 +186,10 @@ export function AppSidebar() {
         }}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
-        className="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-500 text-white shadow-lg transition-all duration-200 hover:shadow-xl relative mb-4"
+        className="w-12 h-12 rounded-xl flex items-center justify-center bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-all duration-200 relative mb-4"
         title="Feature Guide"
       >
-        <HelpCircle size={22} strokeWidth={2.5} />
+        <HelpCircle size={22} />
         {!hasSeenTour && (
           <motion.span
             animate={{ scale: [1, 1.2, 1] }}
