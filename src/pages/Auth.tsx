@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,16 +15,26 @@ export default function Auth({ redirectAfterAuth = "/dashboard" }: { redirectAft
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
   const navigate = useNavigate();
 
-  const handleSendOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Timer for resend button
+  useEffect(() => {
+    if (resendTimer > 0) {
+      const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendTimer]);
+
+  const handleSendOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!email) return;
     
     setIsLoading(true);
     try {
       await signIn("email-otp", { email });
       setStep("otp");
+      setResendTimer(60); // 60 seconds cooldown
       toast.success("Code sent to your email!");
     } catch (error) {
       console.error(error);
@@ -138,15 +148,27 @@ export default function Auth({ redirectAfterAuth = "/dashboard" }: { redirectAft
                     </>
                   )}
                 </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="w-full"
-                  onClick={() => setStep("email")}
-                  disabled={isLoading}
-                >
-                  Back to Email
-                </Button>
+                
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => handleSendOtp()}
+                    disabled={isLoading || resendTimer > 0}
+                  >
+                    {resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend Code"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="flex-1"
+                    onClick={() => setStep("email")}
+                    disabled={isLoading}
+                  >
+                    Back to Email
+                  </Button>
+                </div>
               </form>
             )}
           </CardContent>

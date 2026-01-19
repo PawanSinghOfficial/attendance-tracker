@@ -30,6 +30,11 @@ const schema = defineSchema(
       isAnonymous: v.optional(v.boolean()), // is the user anonymous. do not remove
 
       role: v.optional(roleValidator), // role of the user. do not remove
+      
+      // Profile fields
+      emoji: v.optional(v.string()),
+      branch: v.optional(v.string()),
+      year: v.optional(v.string()),
     }).index("email", ["email"]), // index for the email. do not remove or modify
 
     // add other tables here

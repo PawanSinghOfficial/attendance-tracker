@@ -14,6 +14,9 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { toast } from "sonner";
 
 const navItems = [
   {
@@ -36,14 +39,16 @@ const navItems = [
 export function AppSidebar() {
   const { signOut } = useAuthActions();
   const location = useLocation();
-  const [userInfo, setUserInfo] = useState({
-    emoji: "🎓",
-    name: localStorage.getItem("userName") || "Student",
-    branch: localStorage.getItem("userBranch") || "Computer Science",
-    year: localStorage.getItem("userYear") || "3rd Year",
-  });
+  const user = useQuery(api.users.currentUser);
+  const updateProfile = useMutation(api.users.updateProfile);
+  
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [tempInfo, setTempInfo] = useState(userInfo);
+  const [tempInfo, setTempInfo] = useState({
+    emoji: "🎓",
+    name: "Student",
+    branch: "Computer Science",
+    year: "3rd Year",
+  });
   const [hasSeenTour, setHasSeenTour] = useState(true);
 
   useEffect(() => {
@@ -51,12 +56,30 @@ export function AppSidebar() {
     setHasSeenTour(!!tourSeen);
   }, []);
 
-  const handleSave = () => {
-    setUserInfo(tempInfo);
-    localStorage.setItem("userName", tempInfo.name);
-    localStorage.setItem("userBranch", tempInfo.branch);
-    localStorage.setItem("userYear", tempInfo.year);
-    setIsEditOpen(false);
+  useEffect(() => {
+    if (user) {
+      setTempInfo({
+        emoji: user.emoji || "🎓",
+        name: user.name || "Student",
+        branch: user.branch || "Computer Science",
+        year: user.year || "3rd Year",
+      });
+    }
+  }, [user]);
+
+  const handleSave = async () => {
+    try {
+      await updateProfile({
+        name: tempInfo.name,
+        emoji: tempInfo.emoji,
+        branch: tempInfo.branch,
+        year: tempInfo.year,
+      });
+      setIsEditOpen(false);
+      toast.success("Profile updated");
+    } catch (error) {
+      toast.error("Failed to update profile");
+    }
   };
 
   return (
@@ -72,9 +95,9 @@ export function AppSidebar() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className="mb-4 w-12 h-12 rounded-full bg-gradient-to-br from-[oklch(var(--gradient-2))] to-[oklch(var(--gradient-3))] flex items-center justify-center text-2xl shadow-lg cursor-pointer hover:shadow-xl transition-shadow"
-            title={`${userInfo.name} - ${userInfo.branch}`}
+            title={`${tempInfo.name} - ${tempInfo.branch}`}
           >
-            {userInfo.emoji}
+            {tempInfo.emoji}
           </motion.button>
         </DialogTrigger>
         <DialogContent>
@@ -126,7 +149,14 @@ export function AppSidebar() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  setTempInfo(userInfo);
+                  if (user) {
+                    setTempInfo({
+                      emoji: user.emoji || "🎓",
+                      name: user.name || "Student",
+                      branch: user.branch || "Computer Science",
+                      year: user.year || "3rd Year",
+                    });
+                  }
                   setIsEditOpen(false);
                 }}
               >
