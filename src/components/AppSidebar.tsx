@@ -1,8 +1,8 @@
-import { LayoutDashboard, BookOpen, Settings, CalendarDays } from "lucide-react";
+import { LayoutDashboard, BookOpen, Settings, CalendarDays, HelpCircle } from "lucide-react";
 import { Link, useLocation } from "react-router";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -42,6 +42,12 @@ export function AppSidebar() {
   });
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [tempInfo, setTempInfo] = useState(userInfo);
+  const [hasSeenTour, setHasSeenTour] = useState(true);
+
+  useEffect(() => {
+    const tourSeen = localStorage.getItem("attendanceTrackerTourSeen");
+    setHasSeenTour(!!tourSeen);
+  }, []);
 
   const handleSave = () => {
     setUserInfo(tempInfo);
@@ -171,6 +177,27 @@ export function AppSidebar() {
           );
         })}
       </nav>
+
+      {/* Help/Feature Tour Button - At bottom */}
+      <motion.button
+        onClick={() => {
+          // Trigger the tour by dispatching a custom event
+          window.dispatchEvent(new CustomEvent('openFeatureTour'));
+        }}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
+        className="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-500 text-white shadow-lg transition-all duration-200 hover:shadow-xl relative mb-4"
+        title="Feature Guide"
+      >
+        <HelpCircle size={22} strokeWidth={2.5} />
+        {!hasSeenTour && (
+          <motion.span
+            animate={{ scale: [1, 1.2, 1] }}
+            transition={{ repeat: Infinity, duration: 2 }}
+            className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"
+          />
+        )}
+      </motion.button>
     </motion.aside>
   );
 }

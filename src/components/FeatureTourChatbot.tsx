@@ -208,6 +208,16 @@ export function FeatureTourChatbot() {
     } else {
       setHasSeenTour(true);
     }
+
+    // Listen for custom event from sidebar button
+    const handleOpenTour = () => {
+      handleOpen();
+    };
+    window.addEventListener('openFeatureTour', handleOpenTour);
+
+    return () => {
+      window.removeEventListener('openFeatureTour', handleOpenTour);
+    };
   }, []);
 
   useEffect(() => {
@@ -293,54 +303,6 @@ export function FeatureTourChatbot() {
 
   return (
     <>
-      {/* Floating Help Button - Bottom Left (Below Settings in Sidebar) */}
-      <motion.div
-        className="hidden md:flex fixed bottom-6 left-4 z-40"
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
-      >
-        <motion.button
-          onClick={handleOpen}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
-          className="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white shadow-lg relative group transition-all duration-200"
-          title="Feature Guide"
-        >
-          <HelpCircle size={22} />
-          {!hasSeenTour && (
-            <motion.div
-              animate={{ scale: [1, 1.2, 1] }}
-              transition={{ repeat: Infinity, duration: 2 }}
-              className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"
-            />
-          )}
-        </motion.button>
-      </motion.div>
-
-      {/* Mobile Help Button - Bottom Right */}
-      <motion.div
-        className="md:hidden fixed bottom-24 right-6 z-40"
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
-      >
-        <Button
-          onClick={handleOpen}
-          size="lg"
-          className="rounded-full h-12 w-12 shadow-lg bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 relative"
-        >
-          <HelpCircle size={22} />
-          {!hasSeenTour && (
-            <motion.div
-              animate={{ scale: [1, 1.2, 1] }}
-              transition={{ repeat: Infinity, duration: 2 }}
-              className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"
-            />
-          )}
-        </Button>
-      </motion.div>
-
       {/* Chatbot Panel */}
       <AnimatePresence>
         {isOpen && (
