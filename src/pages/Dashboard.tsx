@@ -338,6 +338,7 @@ export default function Dashboard() {
               variant="outline"
               size="sm"
               onClick={() => setShowCalendar(!showCalendar)}
+              className="calendar-button"
             >
               <CalendarIcon size={16} className="mr-2" />
               {showCalendar ? "Hide" : "Show"} Calendar
@@ -346,11 +347,14 @@ export default function Dashboard() {
               variant="outline"
               size="sm"
               onClick={handleResetAllAttendance}
+              className="reset-button"
             >
               <RotateCcw size={16} className="mr-2" />
               Reset All
             </Button>
-            <WeeklySummaryBadge />
+            <div className="weekly-summary-badge">
+              <WeeklySummaryBadge />
+            </div>
           </motion.div>
         </div>
 
@@ -639,7 +643,7 @@ export default function Dashboard() {
               <Badge variant="outline" className="text-sm">
                 {weekDates[0] && format(weekDates[0], "MMM d")} - {weekDates[5] && format(weekDates[5], "MMM d")}
               </Badge>
-              <div className="flex items-center gap-2 bg-muted p-1 rounded-lg">
+              <div className="flex items-center gap-2 bg-muted p-1 rounded-lg view-toggle">
                 <Button
                   variant={viewMode === "cards" ? "default" : "ghost"}
                   size="sm"
@@ -1084,12 +1088,8 @@ export default function Dashboard() {
           )}
         </section>
       </div>
-      <div className="quick-actions">
-        <QuickActionsButton />
-      </div>
-      <div className="class-reminders">
-        <ClassReminders />
-      </div>
+      <QuickActionsButton />
+      <ClassReminders />
       <FeatureTourChatbot />
       </AppLayout>
     </PageTransition>

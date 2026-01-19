@@ -140,6 +140,7 @@ const tourSteps: TourStep[] = [
     title: "Calendar View",
     message:
       "Click 'Show Calendar' at the top to see a monthly calendar view of your attendance. Days are color-coded: green for attended, red for missed, gray for no classes.",
+    highlightSelector: ".calendar-button",
     action: "Great for seeing attendance patterns over time",
   },
   {
@@ -147,44 +148,35 @@ const tourSteps: TourStep[] = [
     title: "Quick Actions Button",
     message:
       "The floating Quick Actions button (usually at the bottom right) gives you fast access to add subjects, classes, holidays, and view settings.",
-    highlightSelector: ".quick-actions",
+    highlightSelector: ".quick-actions-fab",
   },
   {
-    id: "subjects-page",
-    title: "Subjects Management",
+    id: "view-toggle",
+    title: "View Toggle Buttons",
     message:
-      "Go to the Subjects page to add new subjects, set target attendance percentages, assign colors, and manage all your courses in one place.",
+      "Switch between Cards view and Timetable view using these toggle buttons. Each view has its advantages - cards show more details, timetable shows the week at a glance.",
+    highlightSelector: ".view-toggle",
   },
   {
-    id: "schedule-page",
-    title: "Schedule Management",
+    id: "weekly-badge",
+    title: "Weekly Summary Badge",
     message:
-      "The Schedule page lets you add classes to your weekly timetable. Specify day, time, subject, type (Lecture/Lab), room number, and week patterns.",
-  },
-  {
-    id: "holidays",
-    title: "Holidays & Exceptions",
-    message:
-      "You can mark holidays and class exceptions. Holidays will show 'No classes' for that day. Exceptions let you cancel regular classes or add extra classes.",
-  },
-  {
-    id: "settings",
-    title: "Settings & Customization",
-    message:
-      "In Settings, you can set semester dates, default target attendance, enable/disable notifications, and configure reminder timing for upcoming classes.",
-  },
-  {
-    id: "class-reminders",
-    title: "Class Reminders",
-    message:
-      "If enabled, you'll get reminders before upcoming classes. The reminder shows which class is starting soon so you never miss one!",
-    highlightSelector: ".class-reminders",
+      "This badge at the top right shows your attendance percentage for the current week. It updates in real-time as you mark attendance!",
+    highlightSelector: ".weekly-summary-badge",
   },
   {
     id: "reset-feature",
     title: "Reset Attendance",
     message:
       "The 'Reset All' button lets you start fresh if needed. Use this at the beginning of a new semester. Warning: This deletes all attendance records!",
+    highlightSelector: ".reset-button",
+  },
+  {
+    id: "navigation",
+    title: "Navigation Menu",
+    message:
+      "Use the navigation menu to access different pages: Dashboard (home), Subjects (manage courses), Schedule (manage timetable), and Settings (customize app).",
+    highlightSelector: "nav",
   },
   {
     id: "responsive-design",
@@ -309,7 +301,7 @@ export function FeatureTourChatbot() {
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
-            className="fixed bottom-6 right-6 z-50"
+            className="fixed bottom-28 right-6 z-50"
           >
             <Button
               onClick={handleOpen}

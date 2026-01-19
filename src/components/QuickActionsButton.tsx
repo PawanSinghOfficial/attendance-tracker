@@ -106,7 +106,7 @@ export function QuickActionsButton() {
     <>
       {/* Floating Action Button */}
       <motion.div
-        className="fixed bottom-8 right-8 z-50"
+        className="fixed bottom-8 right-8 z-50 quick-actions-fab"
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ delay: 0.5, type: "spring", stiffness: 200 }}
