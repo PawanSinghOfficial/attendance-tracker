@@ -9,14 +9,16 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "framer-motion";
-import { Bell, Calendar, Trash2, Download, Save } from "lucide-react";
+import { Bell, Calendar, Trash2, Download, Save, LogOut } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
+import { useAuthActions } from "@convex-dev/auth/react";
 import { SettingsSkeleton } from "@/components/LoadingSkeleton";
 import { PageTransition } from "@/components/PageTransition";
 
 export default function Settings() {
+  const { signOut } = useAuthActions();
   const settings = useQuery(api.settings.get);
   const holidays = useQuery(api.holidays.list);
   const subjects = useQuery(api.subjects.list);
@@ -146,13 +148,19 @@ export default function Settings() {
       <AppLayout>
         <div className="max-w-4xl mx-auto space-y-8 fade-in">
         {/* Header */}
-        <div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-[oklch(var(--gradient-2))] to-[oklch(var(--gradient-3))] bg-clip-text text-transparent">
-            Settings
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Configure your attendance tracking preferences
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-[oklch(var(--gradient-2))] to-[oklch(var(--gradient-3))] bg-clip-text text-transparent">
+              Settings
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Configure your attendance tracking preferences
+            </p>
+          </div>
+          <Button variant="destructive" size="sm" onClick={() => signOut()}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Sign Out
+          </Button>
         </div>
 
         <Tabs defaultValue="notifications" className="space-y-6">

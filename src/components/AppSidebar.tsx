@@ -1,6 +1,7 @@
-import { LayoutDashboard, BookOpen, Settings, CalendarDays, HelpCircle } from "lucide-react";
+import { LayoutDashboard, BookOpen, Settings, CalendarDays, HelpCircle, LogOut } from "lucide-react";
 import { Link, useLocation } from "react-router";
 import { motion } from "framer-motion";
+import { useAuthActions } from "@convex-dev/auth/react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import {
@@ -33,6 +34,7 @@ const navItems = [
 ];
 
 export function AppSidebar() {
+  const { signOut } = useAuthActions();
   const location = useLocation();
   const [userInfo, setUserInfo] = useState({
     emoji: "🎓",
@@ -129,6 +131,16 @@ export function AppSidebar() {
                 }}
               >
                 Cancel
+              </Button>
+            </div>
+            <div className="pt-2 border-t mt-2">
+              <Button 
+                variant="destructive" 
+                className="w-full" 
+                onClick={() => signOut()}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign Out
               </Button>
             </div>
           </div>
