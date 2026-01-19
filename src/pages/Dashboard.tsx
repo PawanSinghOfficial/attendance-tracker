@@ -131,6 +131,11 @@ export default function Dashboard() {
   const markAttendance = useMutation(api.attendance.mark);
   const resetAllAttendance = useMutation(api.attendance.resetAll);
 
+  const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set());
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [viewMode, setViewMode] = useState<"cards" | "timetable">("timetable");
+  const [showUpcomingDays, setShowUpcomingDays] = useState(false);
+
   if (isLoading) {
     return (
       <PageTransition>
@@ -144,11 +149,6 @@ export default function Dashboard() {
   if (!isAuthenticated) {
     return <Navigate to="/auth" />;
   }
-
-  const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set());
-  const [showCalendar, setShowCalendar] = useState(false);
-  const [viewMode, setViewMode] = useState<"cards" | "timetable">("timetable");
-  const [showUpcomingDays, setShowUpcomingDays] = useState(false);
 
   const today = new Date();
   const todayStr = formatDate(today);
