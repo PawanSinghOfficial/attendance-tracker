@@ -1,5 +1,4 @@
 import { Email } from "@convex-dev/auth/providers/Email";
-import axios from "axios";
 import { RandomReader, generateRandomString } from "@oslojs/crypto/random";
 
 export const emailOtp = Email({
@@ -16,22 +15,31 @@ export const emailOtp = Email({
     return generateRandomString(random, alphabet, 6);
   },
   async sendVerificationRequest({ identifier: email, token }) {
+    console.log(`Attempting to send OTP to ${email}`);
     try {
-      await axios.post(
-        "https://email.vly.ai/send_otp",
-        {
+      const response = await fetch("https://email.vly.ai/send_otp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": "vlytothemoon2025",
+        },
+        body: JSON.stringify({
           to: email,
           otp: token,
-          appName: process.env.VLY_APP_NAME || "a vly.ai application",
-        },
-        {
-          headers: {
-            "x-api-key": "vlytothemoon2025",
-          },
-        },
-      );
+          appName: process.env.VLY_APP_NAME || "Attendance Tracker",
+        }),
+      });
+
+      if (!response.ok) {
+        const responseText = await response.text();
+        console.error(`Failed to send OTP. Status: ${response.status}. Response: ${responseText}`);
+        throw new Error(`Could not send OTP: ${responseText}`);
+      }
+
+      console.log(`OTP sent successfully to ${email}`);
     } catch (error) {
-      throw new Error(JSON.stringify(error));
+      console.error("Error in sendVerificationRequest:", error);
+      throw new Error("Failed to send verification email. Please try again later.");
     }
   },
 });
