@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Clock, Utensils, MapPin } from "lucide-react";
 import { convertTo12Hour, getWeekOfMonth } from "@/lib/attendance-utils";
+import { useState } from "react";
+import { ClassEditDialog } from "./ClassEditDialog";
 
 interface Class {
   _id: string;
@@ -136,6 +138,8 @@ function getSlotInfo(dayClasses: Class[], slotIndex: number): SlotInfo {
 
 export function TimetableGrid({ weeklySchedule, weekDates }: TimetableGridProps) {
   const today = new Date().getDay();
+  const [selectedClass, setSelectedClass] = useState<Class | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   // Filter classes based on week pattern for each date
   const getClassesForDate = (date: Date): Class[] => {
@@ -151,6 +155,11 @@ export function TimetableGrid({ weeklySchedule, weekDates }: TimetableGridProps)
       // Check if current week is in the pattern
       return cls.weekPattern.includes(weekOfMonth);
     });
+  };
+
+  const handleClassClick = (cls: Class) => {
+    setSelectedClass(cls);
+    setDialogOpen(true);
   };
 
   return (
@@ -256,6 +265,7 @@ export function TimetableGrid({ weeklySchedule, weekDates }: TimetableGridProps)
                                 delay: dayIndex * 0.05 + slotIndex * 0.01,
                               }}
                               whileHover={{ scale: 1.02, zIndex: 10 }}
+                              onClick={() => handleClassClick(cls)}
                               className="rounded-lg shadow-sm cursor-pointer overflow-hidden p-2 h-full min-h-[80px] border border-white/10 relative"
                               style={{
                                 backgroundColor: cls.subject?.color || "#8b5cf6",
@@ -325,9 +335,18 @@ export function TimetableGrid({ weeklySchedule, weekDates }: TimetableGridProps)
               <div className="w-2.5 h-2.5 rounded bg-orange-100 border border-orange-200 dark:bg-orange-900/20 dark:border-orange-800" />
               <span>Lunch Break</span>
             </div>
+            <div className="flex items-center gap-1.5 ml-auto">
+              <span className="text-xs font-medium">💡 Click on any class to edit details</span>
+            </div>
           </div>
         </div>
       </Card>
+
+      <ClassEditDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        classData={selectedClass}
+      />
     </motion.div>
   );
 }
