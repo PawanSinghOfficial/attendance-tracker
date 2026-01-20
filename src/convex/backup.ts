@@ -7,18 +7,25 @@ export const exportUserData = query({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
 
-    // Get user
-    const user = await ctx.db
-      .query("users")
-      .withIndex("email", (q) => q.eq("email", identity.email))
-      .unique();
+    // Get user info if authenticated
+    let userInfo = null;
+    if (identity) {
+      const user = await ctx.db
+        .query("users")
+        .withIndex("email", (q) => q.eq("email", identity.email))
+        .unique();
 
-    if (!user) {
-      throw new Error("User not found");
+      if (user) {
+        userInfo = {
+          name: user.name,
+          email: user.email,
+          emoji: user.emoji,
+          branch: user.branch,
+          year: user.year,
+          role: user.role,
+        };
+      }
     }
 
     // Get all subjects
@@ -41,14 +48,7 @@ export const exportUserData = query({
 
     return {
       exportDate: new Date().toISOString(),
-      user: {
-        name: user.name,
-        email: user.email,
-        emoji: user.emoji,
-        branch: user.branch,
-        year: user.year,
-        role: user.role,
-      },
+      user: userInfo,
       subjects,
       classes,
       attendance,

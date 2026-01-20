@@ -14,6 +14,7 @@ The new system requires email authentication to access your data. Before deployi
 
 ### Step 1: Backup Your Data (BEFORE Deployment)
 
+**Option A: If you can access Settings page**
 1. **Open your current app** (the one without email authentication)
 2. Go to **Settings** page
 3. Click on the **"Backup"** tab
@@ -21,7 +22,13 @@ The new system requires email authentication to access your data. Before deployi
 5. Save the JSON file to a safe location (e.g., Desktop, Downloads folder)
    - The file will be named like: `attendance-backup-2026-01-20.json`
 
-**Important:** This file contains ALL your data:
+**Option B: If Settings page shows "User not found" error**
+1. This means you're already on the new version
+2. You can still export your data - the backup feature works without authentication
+3. Just click "Download Backup" and your data will be exported
+4. Then proceed to sign in and import the data
+
+**Important:** The backup file contains ALL your data:
 - All subjects
 - All classes and schedules
 - All attendance records
