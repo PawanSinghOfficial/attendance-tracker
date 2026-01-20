@@ -18,6 +18,7 @@ const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
 const Subjects = lazy(() => import("./pages/Subjects.tsx"));
 const Settings = lazy(() => import("./pages/Settings.tsx"));
 const Schedule = lazy(() => import("./pages/Schedule.tsx"));
+const Backup = lazy(() => import("./pages/Backup.tsx"));
 
 // Simple loading fallback for route transitions
 function RouteLoading() {
@@ -66,6 +67,7 @@ function AnimatedRoutes() {
         <Route path="/subjects" element={<Subjects />} />
         <Route path="/schedule" element={<Schedule />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/backup" element={<Backup />} />
         <Route path="/auth" element={<AuthPage redirectAfterAuth="/dashboard" />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
