@@ -35,8 +35,9 @@ export default function Auth({ redirectAfterAuth = "/dashboard" }: { redirectAft
     try {
       await signIn("email-otp", { email: cleanEmail });
       setStep("otp");
-      setResendTimer(60); // 60 seconds cooldown
-      toast.success("Code sent to your email!");
+      setOtp(""); // Clear any previous OTP
+      setResendTimer(120); // 120 seconds cooldown to prevent rapid invalidation
+      toast.success("Code sent! It may take 1-2 minutes to arrive.");
     } catch (error) {
       console.error(error);
       toast.error("Failed to send code. Please try again.");
@@ -56,7 +57,7 @@ export default function Auth({ redirectAfterAuth = "/dashboard" }: { redirectAft
       navigate(redirectAfterAuth);
     } catch (error) {
       console.error(error);
-      toast.error("Invalid code. Please try again.");
+      toast.error("Invalid code. If you requested a new code, please wait for the latest email.");
       setOtp(""); // Clear OTP to allow easy retry
     } finally {
       setIsLoading(false);
@@ -123,6 +124,7 @@ export default function Auth({ redirectAfterAuth = "/dashboard" }: { redirectAft
                     maxLength={6}
                     value={otp}
                     onChange={(value) => setOtp(value)}
+                    autoFocus
                   >
                     <InputOTPGroup>
                       <InputOTPSlot index={0} />
@@ -133,9 +135,14 @@ export default function Auth({ redirectAfterAuth = "/dashboard" }: { redirectAft
                       <InputOTPSlot index={5} />
                     </InputOTPGroup>
                   </InputOTP>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Enter the 6-digit code from your email
-                  </p>
+                  <div className="text-center space-y-1 mt-2">
+                    <p className="text-xs text-muted-foreground">
+                      Enter the 6-digit code from your email
+                    </p>
+                    <p className="text-xs text-orange-600 font-medium">
+                      Check your spam folder if it doesn't appear within a minute.
+                    </p>
+                  </div>
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading || otp.length !== 6}>
                   {isLoading ? (
