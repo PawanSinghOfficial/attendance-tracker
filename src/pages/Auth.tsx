@@ -345,9 +345,6 @@ export default function Auth({ redirectAfterAuth = "/dashboard" }: { redirectAft
                     <p className="text-xs text-muted-foreground">
                       Enter the 6-digit code from your email
                     </p>
-                    <p className="text-xs text-orange-600 font-medium">
-                      Check your spam folder if it doesn't appear within a minute.
-                    </p>
                   </div>
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading || otp.length !== 6}>
@@ -387,11 +384,6 @@ export default function Auth({ redirectAfterAuth = "/dashboard" }: { redirectAft
               </form>
             )}
           </CardContent>
-          <CardFooter className="flex justify-center border-t pt-6">
-            <p className="text-xs text-muted-foreground text-center">
-              By signing in, you agree to our Terms of Service and Privacy Policy.
-            </p>
-          </CardFooter>
         </Card>
       </div>
     </div>
