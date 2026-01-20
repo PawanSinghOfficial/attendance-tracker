@@ -4,7 +4,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "framer-motion";
-import { Bell, Calendar, LogOut } from "lucide-react";
+import { Bell, Calendar, LogOut, Database } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { useAuthActions } from "@convex-dev/auth/react";
@@ -13,6 +13,7 @@ import { PageTransition } from "@/components/PageTransition";
 import { NotificationSettings } from "@/components/settings/NotificationSettings";
 import { SemesterSettings } from "@/components/settings/SemesterSettings";
 import { HolidaySettings } from "@/components/settings/HolidaySettings";
+import { BackupRestore } from "@/components/BackupRestore";
 
 export default function Settings() {
   const { signOut } = useAuthActions();
@@ -74,7 +75,7 @@ export default function Settings() {
         </div>
 
         <Tabs defaultValue="notifications" className="space-y-6">
-          <TabsList className="grid grid-cols-3 w-full max-w-md">
+          <TabsList className="grid grid-cols-4 w-full max-w-2xl">
             <TabsTrigger value="notifications">
               <Bell size={16} className="mr-2" />
               Notifications
@@ -86,6 +87,10 @@ export default function Settings() {
             <TabsTrigger value="holidays">
               <Calendar size={16} className="mr-2" />
               Holidays
+            </TabsTrigger>
+            <TabsTrigger value="backup">
+              <Database size={16} className="mr-2" />
+              Backup
             </TabsTrigger>
           </TabsList>
 
@@ -119,6 +124,17 @@ export default function Settings() {
               transition={{ duration: 0.3 }}
             >
               <HolidaySettings onExport={handleExportData} />
+            </motion.div>
+          </TabsContent>
+
+          {/* Backup Tab */}
+          <TabsContent value="backup">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <BackupRestore />
             </motion.div>
           </TabsContent>
         </Tabs>
