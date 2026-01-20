@@ -28,11 +28,12 @@ export default function Auth({ redirectAfterAuth = "/dashboard" }: { redirectAft
 
   const handleSendOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!email) return;
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) return;
     
     setIsLoading(true);
     try {
-      await signIn("email-otp", { email });
+      await signIn("email-otp", { email: cleanEmail });
       setStep("otp");
       setResendTimer(60); // 60 seconds cooldown
       toast.success("Code sent to your email!");
@@ -50,12 +51,13 @@ export default function Auth({ redirectAfterAuth = "/dashboard" }: { redirectAft
 
     setIsLoading(true);
     try {
-      await signIn("email-otp", { email, code: otp });
+      await signIn("email-otp", { email: email.trim().toLowerCase(), code: otp });
       toast.success("Successfully signed in!");
       navigate(redirectAfterAuth);
     } catch (error) {
       console.error(error);
       toast.error("Invalid code. Please try again.");
+      setOtp(""); // Clear OTP to allow easy retry
     } finally {
       setIsLoading(false);
     }
