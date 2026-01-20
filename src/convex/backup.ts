@@ -10,20 +10,20 @@ export const exportUserData = query({
 
     // Get user info if authenticated
     let userInfo = null;
-    if (identity) {
+    if (identity && identity.email) {
       const user = await ctx.db
         .query("users")
-        .withIndex("email", (q) => q.eq("email", identity.email))
+        .withIndex("email", (q) => q.eq("email", identity.email!))
         .unique();
 
       if (user) {
         userInfo = {
-          name: user.name,
-          email: user.email,
-          emoji: user.emoji,
-          branch: user.branch,
-          year: user.year,
-          role: user.role,
+          ...(user.name !== undefined && { name: user.name }),
+          ...(user.email !== undefined && { email: user.email }),
+          ...(user.emoji !== undefined && { emoji: user.emoji }),
+          ...(user.branch !== undefined && { branch: user.branch }),
+          ...(user.year !== undefined && { year: user.year }),
+          ...(user.role !== undefined && { role: user.role }),
         };
       }
     }
