@@ -29,9 +29,22 @@ function RouteLoading() {
   );
 }
 
-const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
+const convexUrl = import.meta.env.VITE_CONVEX_URL as string | undefined;
+const convex = convexUrl ? new ConvexReactClient(convexUrl) : null;
 
-
+function ConvexNotConfigured() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="max-w-md text-center space-y-4">
+        <h1 className="text-2xl font-bold text-destructive">Configuration Required</h1>
+        <p className="text-muted-foreground">
+          The <code className="bg-muted px-1.5 py-0.5 rounded text-sm">VITE_CONVEX_URL</code> environment variable is not set.
+          Please configure your Convex deployment URL in your Netlify environment variables to use this app.
+        </p>
+      </div>
+    </div>
+  );
+}
 
 function RouteSyncer() {
   const location = useLocation();
@@ -80,17 +93,21 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <VlyToolbar />
     <InstrumentationProvider>
-      <ConvexProvider client={convex}>
-        <ConvexAuthProvider client={convex}>
-          <BrowserRouter>
-            <RouteSyncer />
-            <Suspense fallback={<RouteLoading />}>
-              <AnimatedRoutes />
-            </Suspense>
-          </BrowserRouter>
-          <Toaster />
-        </ConvexAuthProvider>
-      </ConvexProvider>
+      {convex ? (
+        <ConvexProvider client={convex}>
+          <ConvexAuthProvider client={convex}>
+            <BrowserRouter>
+              <RouteSyncer />
+              <Suspense fallback={<RouteLoading />}>
+                <AnimatedRoutes />
+              </Suspense>
+            </BrowserRouter>
+            <Toaster />
+          </ConvexAuthProvider>
+        </ConvexProvider>
+      ) : (
+        <ConvexNotConfigured />
+      )}
     </InstrumentationProvider>
   </StrictMode>,
 );
