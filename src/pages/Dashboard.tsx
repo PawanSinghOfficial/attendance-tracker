@@ -4,10 +4,12 @@ import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { ProgressRing } from "@/components/ProgressRing";
 import { motion } from "framer-motion";
-import { format, parseISO } from "date-fns";
+import { addDays, format, parseISO } from "date-fns";
 import {
   getCurrentWeekDates,
   formatDate,
@@ -18,7 +20,6 @@ import {
   willReachTarget,
   calculateStreak,
   convertTo12Hour,
-  getWeekOfMonth,
 } from "@/lib/attendance-utils";
 import { Check, X, Clock, AlertTriangle, TrendingUp, Flame, Plus, Calendar as CalendarIcon, LayoutGrid, Grid3x3, RotateCcw } from "lucide-react";
 import { useState } from "react";
@@ -31,7 +32,6 @@ import { AnimatedCounter } from "@/components/AnimatedCounter";
 import { DashboardSkeleton } from "@/components/LoadingSkeleton";
 import { QuickActionsButton } from "@/components/QuickActionsButton";
 import { ClassReminders } from "@/components/ClassReminders";
-import { WeeklySummary } from "@/components/WeeklySummary";
 import { PageTransition } from "@/components/PageTransition";
 import { TimetableGrid } from "@/components/TimetableGrid";
 import { FeatureTourChatbot } from "@/components/FeatureTourChatbot";
@@ -39,36 +39,50 @@ import { useConvexAuth } from "convex/react";
 import { Navigate } from "react-router";
 
 // Weekly Summary Badge Component for top right
-function WeeklySummaryBadge() {
-  const attendance = useQuery(api.attendance.list);
-  const classes = useQuery(api.classes.list);
-
-  if (!attendance || !classes) return null;
-
+function WeeklySummaryBadge({
+  attendance,
+  scheduleByDate,
+}: {
+  attendance: Array<{
+    date: string;
+    status: "present" | "absent";
+    classId?: Id<"classes">;
+    exceptionId?: Id<"classExceptions">;
+  }>;
+  scheduleByDate: Record<string, { classes: Array<{ _id: string; isException?: boolean; exceptionId?: Id<"classExceptions"> }> }>;
+}) {
   const weekDates = getCurrentWeekDates();
-  const weekDateStrings = weekDates.map(formatDate);
+  const today = new Date();
 
-  // Count this week's classes
-  const thisWeekClasses = classes.filter((cls) => {
-    const dayIndex = cls.dayOfWeek;
-    return weekDates.some((date) => date.getDay() === dayIndex);
-  });
+  const possibleClasses = weekDates
+    .filter((date) => date <= today)
+    .flatMap((date) =>
+      (scheduleByDate[formatDate(date)]?.classes || []).map((cls) => ({
+        cls,
+        date: formatDate(date),
+      }))
+    );
 
-  // Count attended classes this week
-  const attendedThisWeek = attendance.filter(
-    (record) =>
-      weekDateStrings.includes(record.date) && record.status === "present"
+  const attendedThisWeek = possibleClasses.filter(({ cls, date }) =>
+    attendance.some((record) => {
+      if (cls.isException && cls.exceptionId) {
+        return (
+          record.date === date &&
+          record.exceptionId === cls.exceptionId &&
+          record.status === "present"
+        );
+      }
+
+      return (
+        record.date === date &&
+        record.classId === cls._id &&
+        record.status === "present"
+      );
+    })
   ).length;
 
-  // Total possible classes this week (only up to today)
-  const today = new Date();
-  const possibleClasses = thisWeekClasses.filter((cls) => {
-    const classDay = weekDates.find((date) => date.getDay() === cls.dayOfWeek);
-    return classDay && classDay <= today;
-  }).length;
-
   const weekPercentage =
-    possibleClasses > 0 ? (attendedThisWeek / possibleClasses) * 100 : 0;
+    possibleClasses.length > 0 ? (attendedThisWeek / possibleClasses.length) * 100 : 0;
 
   return (
     <Badge
@@ -135,6 +149,8 @@ export default function Dashboard() {
   const [showCalendar, setShowCalendar] = useState(false);
   const [viewMode, setViewMode] = useState<"cards" | "timetable">("timetable");
   const [showUpcomingDays, setShowUpcomingDays] = useState(false);
+  const [rangeStartDate, setRangeStartDate] = useState("");
+  const [rangeEndDate, setRangeEndDate] = useState("");
 
   if (isLoading) {
     return (
@@ -153,10 +169,61 @@ export default function Dashboard() {
   const today = new Date();
   const todayStr = formatDate(today);
   const weekDates = getCurrentWeekDates();
+  const scheduleRangeStart = formatDate(weekDates[0]);
+  const scheduleRangeEnd = formatDate(addDays(today, 6) > weekDates[5] ? addDays(today, 6) : weekDates[5]);
+  const scheduleByDate = useQuery(api.classes.getScheduleForDateRange, {
+    startDate: scheduleRangeStart,
+    endDate: scheduleRangeEnd,
+  });
+  const hasCustomRange = Boolean(rangeStartDate || rangeEndDate);
+  const filteredAttendance =
+    allAttendance?.filter((record) => {
+      if (rangeStartDate && record.date < rangeStartDate) {
+        return false;
+      }
+      if (rangeEndDate && record.date > rangeEndDate) {
+        return false;
+      }
+      return true;
+    }) || [];
+  const overallSummaryStats = hasCustomRange
+    ? {
+        present: filteredAttendance.filter((record) => record.status === "present").length,
+        absent: filteredAttendance.filter((record) => record.status === "absent").length,
+        total: filteredAttendance.length,
+        percentage:
+          filteredAttendance.length > 0
+            ? (filteredAttendance.filter((record) => record.status === "present").length /
+                filteredAttendance.length) *
+              100
+            : 0,
+      }
+    : overallStats;
+
+  const getAttendanceForScheduledClass = (
+    cls: { _id: string; isException?: boolean; exceptionId?: Id<"classExceptions"> },
+    date: string
+  ) =>
+    allAttendance?.find((record) => {
+      if (cls.isException && cls.exceptionId) {
+        return record.exceptionId === cls.exceptionId && record.date === date;
+      }
+
+      return record.classId === cls._id && record.date === date;
+    });
+  const getAttendanceTargetIds = (cls: {
+    _id: string;
+    isException?: boolean;
+    exceptionId?: Id<"classExceptions">;
+  }) => ({
+    classId: cls.isException ? undefined : (cls._id as Id<"classes">),
+    exceptionId: cls.isException ? cls.exceptionId : undefined,
+  });
 
   const handleMarkAttendance = async (
     subjectId: Id<"subjects">,
     classId: Id<"classes"> | undefined,
+    exceptionId: Id<"classExceptions"> | undefined,
     date: string,
     status: "present" | "absent"
   ) => {
@@ -164,6 +231,7 @@ export default function Dashboard() {
       await markAttendance({
         subjectId,
         classId,
+        exceptionId,
         date,
         status,
       });
@@ -220,27 +288,13 @@ export default function Dashboard() {
     }
   };
 
-  // Get today's classes with week pattern filtering
-  const todayWeekOfMonth = getWeekOfMonth(today);
-  const todayClasses =
-    weeklySchedule && weeklySchedule[today.getDay()]
-      ? weeklySchedule[today.getDay()]
-          .filter((cls) => {
-            // If no weekPattern or empty array, class occurs every week
-            if (!cls.weekPattern || cls.weekPattern.length === 0) {
-              return true;
-            }
-            // Check if current week is in the pattern
-            return cls.weekPattern.includes(todayWeekOfMonth);
-          })
-          .sort((a, b) => a.startTime.localeCompare(b.startTime))
-      : [];
+  const todayClasses = scheduleByDate?.[todayStr]?.classes || [];
 
   // Get attendance for each subject with separate lecture/lab tracking
   const subjectStats =
     subjects?.map((subject) => {
       const subjectAttendance =
-        allAttendance?.filter((a) => a.subjectId === subject._id) || [];
+        filteredAttendance.filter((a) => a.subjectId === subject._id) || [];
 
       // Get all classes for this subject to determine type
       const subjectClasses = weeklySchedule
@@ -324,7 +378,7 @@ export default function Dashboard() {
 
   const subjectsMayNotReach = subjectStats.filter((s) => !s.prediction.willReach && s.total > 0);
 
-  if (!subjects || !weeklySchedule || !allAttendance || !overallStats) {
+  if (!subjects || !weeklySchedule || !allAttendance || !overallStats || !scheduleByDate) {
     return (
       <PageTransition>
         <AppLayout>
@@ -370,10 +424,48 @@ export default function Dashboard() {
               Reset All
             </Button>
             <div className="weekly-summary-badge">
-              <WeeklySummaryBadge />
+              <WeeklySummaryBadge attendance={allAttendance} scheduleByDate={scheduleByDate} />
             </div>
           </motion.div>
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Attendance Analysis Period</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
+            <div className="space-y-2">
+              <Label htmlFor="range-start">Start date</Label>
+              <Input
+                id="range-start"
+                type="date"
+                value={rangeStartDate}
+                onChange={(e) => setRangeStartDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="range-end">End date</Label>
+              <Input
+                id="range-end"
+                type="date"
+                value={rangeEndDate}
+                onChange={(e) => setRangeEndDate(e.target.value)}
+              />
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRangeStartDate("");
+                setRangeEndDate("");
+              }}
+            >
+              Reset Period
+            </Button>
+            <p className="text-sm text-muted-foreground md:col-span-3">
+              Leave both dates empty to see the full semester. Set any range here to audit a delayed history window separately.
+            </p>
+          </CardContent>
+        </Card>
 
         {/* Calendar View */}
         {showCalendar && (
@@ -398,7 +490,11 @@ export default function Dashboard() {
 
         {/* Overall Attendance Widget */}
         <div className="overall-summary">
-          <OverallSummary percentage={overallStats.percentage} present={overallStats.present} total={overallStats.total} />
+          <OverallSummary
+            percentage={overallSummaryStats?.percentage || 0}
+            present={overallSummaryStats?.present || 0}
+            total={overallSummaryStats?.total || 0}
+          />
         </div>
 
         {/* Today's Schedule */}
@@ -413,8 +509,12 @@ export default function Dashboard() {
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {todayClasses.map((cls, index) => {
+                const targetIds = getAttendanceTargetIds(cls);
                 const attendance = allAttendance?.find(
-                  (a) => a.classId === cls._id && a.date === todayStr
+                  (a) =>
+                    (cls.isException && cls.exceptionId
+                      ? a.exceptionId === cls.exceptionId
+                      : a.classId === cls._id) && a.date === todayStr
                 );
 
                 return (
@@ -463,7 +563,8 @@ export default function Dashboard() {
                               onClick={() =>
                                 handleMarkAttendance(
                                   cls.subjectId,
-                                  cls._id,
+                                  targetIds.classId,
+                                  targetIds.exceptionId,
                                   todayStr,
                                   attendance.status === "present" ? "absent" : "present"
                                 )
@@ -478,7 +579,8 @@ export default function Dashboard() {
                               onClick={() =>
                                 handleMarkAttendance(
                                   cls.subjectId,
-                                  cls._id,
+                                  targetIds.classId,
+                                  targetIds.exceptionId,
                                   todayStr,
                                   "present"
                                 )
@@ -489,8 +591,14 @@ export default function Dashboard() {
                               Present
                             </Button>
                             <Button
-                              onClick={() =>
-                                handleMarkAttendance(cls.subjectId, cls._id, todayStr, "absent")
+                                  onClick={() =>
+                                handleMarkAttendance(
+                                  cls.subjectId,
+                                  targetIds.classId,
+                                  targetIds.exceptionId,
+                                  todayStr,
+                                  "absent"
+                                )
                               }
                               variant="destructive"
                             >
@@ -531,16 +639,7 @@ export default function Dashboard() {
               const upcomingDate = new Date(today);
               upcomingDate.setDate(upcomingDate.getDate() + dayOffset);
               const upcomingDateStr = formatDate(upcomingDate);
-              const upcomingDayOfWeek = upcomingDate.getDay();
-              const upcomingWeekOfMonth = getWeekOfMonth(upcomingDate);
-              const upcomingClasses = (weeklySchedule?.[upcomingDayOfWeek] || []).filter((cls) => {
-                // If no weekPattern or empty array, class occurs every week
-                if (!cls.weekPattern || cls.weekPattern.length === 0) {
-                  return true;
-                }
-                // Check if current week is in the pattern
-                return cls.weekPattern.includes(upcomingWeekOfMonth);
-              });
+              const upcomingClasses = scheduleByDate?.[upcomingDateStr]?.classes || [];
 
               if (upcomingClasses.length === 0) return null;
 
@@ -554,8 +653,12 @@ export default function Dashboard() {
                   <CardContent>
                     <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                       {upcomingClasses.map((cls) => {
+                        const targetIds = getAttendanceTargetIds(cls);
                         const attendance = allAttendance?.find(
-                          (a) => a.classId === cls._id && a.date === upcomingDateStr
+                          (a) =>
+                            (cls.isException && cls.exceptionId
+                              ? a.exceptionId === cls.exceptionId
+                              : a.classId === cls._id) && a.date === upcomingDateStr
                         );
 
                         return (
@@ -600,7 +703,8 @@ export default function Dashboard() {
                                   onClick={() =>
                                     handleMarkAttendance(
                                       cls.subjectId,
-                                      cls._id,
+                                      targetIds.classId,
+                                      targetIds.exceptionId,
                                       upcomingDateStr,
                                       attendance.status === "present" ? "absent" : "present"
                                     )
@@ -615,7 +719,8 @@ export default function Dashboard() {
                                   onClick={() =>
                                     handleMarkAttendance(
                                       cls.subjectId,
-                                      cls._id,
+                                      targetIds.classId,
+                                      targetIds.exceptionId,
                                       upcomingDateStr,
                                       "present"
                                     )
@@ -628,7 +733,13 @@ export default function Dashboard() {
                                 </Button>
                                 <Button
                                   onClick={() =>
-                                    handleMarkAttendance(cls.subjectId, cls._id, upcomingDateStr, "absent")
+                                    handleMarkAttendance(
+                                      cls.subjectId,
+                                      targetIds.classId,
+                                      targetIds.exceptionId,
+                                      upcomingDateStr,
+                                      "absent"
+                                    )
                                   }
                                   variant="destructive"
                                   size="sm"
@@ -684,34 +795,26 @@ export default function Dashboard() {
           </div>
 
           {viewMode === "timetable" ? (
-            <TimetableGrid weeklySchedule={weeklySchedule} weekDates={weekDates} />
+            <TimetableGrid
+              weeklySchedule={weeklySchedule}
+              weekDates={weekDates}
+              scheduleByDate={scheduleByDate}
+            />
           ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
             {weekDates.map((date, index) => {
               const dateStr = formatDate(date);
-              const weekOfMonth = getWeekOfMonth(date);
-              const dayClasses = (weeklySchedule[date.getDay()] || []).filter((cls) => {
-                // If no weekPattern or empty array, class occurs every week
-                if (!cls.weekPattern || cls.weekPattern.length === 0) {
-                  return true;
-                }
-                // Check if current week is in the pattern
-                return cls.weekPattern.includes(weekOfMonth);
-              });
+              const dayClasses = scheduleByDate?.[dateStr]?.classes || [];
               const isTodayDate = isToday(date);
 
               // Calculate attendance stats for this day
               const attendedClasses = dayClasses.filter((cls) => {
-                const attendance = allAttendance?.find(
-                  (a) => a.classId === cls._id && a.date === dateStr
-                );
+                const attendance = getAttendanceForScheduledClass(cls, dateStr);
                 return attendance?.status === "present";
               }).length;
 
               const totalMarked = dayClasses.filter((cls) => {
-                return allAttendance?.find(
-                  (a) => a.classId === cls._id && a.date === dateStr
-                );
+                return getAttendanceForScheduledClass(cls, dateStr);
               }).length;
 
               return (
@@ -783,9 +886,7 @@ export default function Dashboard() {
                       ) : (
                         <div className="space-y-2">
                           {dayClasses.slice(0, 3).map((cls) => {
-                            const attendance = allAttendance?.find(
-                              (a) => a.classId === cls._id && a.date === dateStr
-                            );
+                            const attendance = getAttendanceForScheduledClass(cls, dateStr);
                             const subject = subjects?.find(s => s._id === cls.subjectId);
 
                             return (
@@ -1078,7 +1179,7 @@ export default function Dashboard() {
                           </Button>
                         </CollapsibleTrigger>
                         <CollapsibleContent className="mt-2 space-y-1">
-                          {allAttendance
+                          {filteredAttendance
                             ?.filter((a) => a.subjectId === stat.subject._id)
                             .sort((a, b) => b.date.localeCompare(a.date))
                             .slice(0, 5)

@@ -27,6 +27,7 @@ interface Class {
 interface TimetableGridProps {
   weeklySchedule: Record<number, Class[]>;
   weekDates: Date[];
+  scheduleByDate?: Record<string, { classes: Class[] }>;
 }
 
 // Configuration for the grid columns
@@ -136,13 +137,18 @@ function getSlotInfo(dayClasses: Class[], slotIndex: number): SlotInfo {
   return { render: true };
 }
 
-export function TimetableGrid({ weeklySchedule, weekDates }: TimetableGridProps) {
+export function TimetableGrid({ weeklySchedule, weekDates, scheduleByDate }: TimetableGridProps) {
   const today = new Date().getDay();
   const [selectedClass, setSelectedClass] = useState<Class | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   // Filter classes based on week pattern for each date
   const getClassesForDate = (date: Date): Class[] => {
+    const dateKey = format(date, "yyyy-MM-dd");
+    if (scheduleByDate?.[dateKey]?.classes) {
+      return scheduleByDate[dateKey].classes;
+    }
+
     const dayOfWeek = date.getDay();
     const weekOfMonth = getWeekOfMonth(date);
     const dayClasses = weeklySchedule[dayOfWeek] || [];

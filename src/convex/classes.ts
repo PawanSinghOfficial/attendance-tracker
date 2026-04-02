@@ -1,6 +1,92 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
+function formatLocalDate(date: Date) {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+async function buildScheduleForDate(ctx: any, date: string) {
+  const holiday = await ctx.db
+    .query("holidays")
+    .withIndex("by_date", (q: any) => q.eq("date", date))
+    .first();
+
+  if (holiday) {
+    return {
+      isHoliday: true,
+      holidayName: holiday.name,
+      classes: [],
+    };
+  }
+
+  const dateObj = new Date(date + "T00:00:00");
+  const dayOfWeek = dateObj.getDay();
+  const weekOfMonth = getWeekOfMonth(dateObj);
+
+  const regularClasses = await ctx.db
+    .query("classes")
+    .withIndex("by_day", (q: any) => q.eq("dayOfWeek", dayOfWeek))
+    .collect();
+
+  const filteredClasses = regularClasses.filter((cls: any) => {
+    if (!cls.weekPattern || cls.weekPattern.length === 0) {
+      return true;
+    }
+    return cls.weekPattern.includes(weekOfMonth);
+  });
+
+  const exceptions = await ctx.db
+    .query("classExceptions")
+    .withIndex("by_date", (q: any) => q.eq("date", date))
+    .collect();
+
+  const subjects = await ctx.db.query("subjects").collect();
+  const subjectMap = new Map(subjects.map((s: any) => [s._id, s]));
+
+  const cancelledClassIds = new Set(
+    exceptions
+      .filter((e: any) => e.type === "cancelled" && e.classId)
+      .map((e: any) => e.classId)
+  );
+
+  const activeRegularClasses = filteredClasses
+    .filter((cls: any) => !cancelledClassIds.has(cls._id))
+    .map((cls: any) => ({
+      ...cls,
+      subject: subjectMap.get(cls.subjectId),
+      isException: false,
+      exceptionId: undefined,
+    }));
+
+  const addedClasses = exceptions
+    .filter((e: any) => e.type === "added")
+    .map((e: any) => ({
+      _id: e._id,
+      subjectId: e.subjectId,
+      dayOfWeek,
+      startTime: e.startTime || "09:00",
+      endTime: e.endTime || "10:00",
+      type: e.classType || "LECTURE",
+      subject: subjectMap.get(e.subjectId),
+      isException: true,
+      exceptionId: e._id,
+      exceptionReason: e.reason,
+    }));
+
+  const allClasses = [...activeRegularClasses, ...addedClasses].sort((a, b) =>
+    a.startTime.localeCompare(b.startTime)
+  );
+
+  return {
+    isHoliday: false,
+    classes: allClasses,
+    weekOfMonth,
+  };
+}
+
 // Get all classes
 export const list = query({
   args: {},
@@ -122,89 +208,26 @@ function getWeekOfMonth(date: Date): number {
 export const getScheduleForDate = query({
   args: { date: v.string() },
   handler: async (ctx, args) => {
-    // Check if it's a holiday
-    const holiday = await ctx.db
-      .query("holidays")
-      .withIndex("by_date", (q) => q.eq("date", args.date))
-      .first();
+    return buildScheduleForDate(ctx, args.date);
+  },
+});
 
-    if (holiday) {
-      return {
-        isHoliday: true,
-        holidayName: holiday.name,
-        classes: [],
-      };
+export const getScheduleForDateRange = query({
+  args: {
+    startDate: v.string(),
+    endDate: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const schedules: Record<string, Awaited<ReturnType<typeof buildScheduleForDate>>> = {};
+    const currentDate = new Date(args.startDate + "T00:00:00");
+    const endDate = new Date(args.endDate + "T00:00:00");
+
+    while (currentDate <= endDate) {
+      const dateString = formatLocalDate(currentDate);
+      schedules[dateString] = await buildScheduleForDate(ctx, dateString);
+      currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    // Get day of week from date
-    const dateObj = new Date(args.date + "T00:00:00");
-    const dayOfWeek = dateObj.getDay();
-    const weekOfMonth = getWeekOfMonth(dateObj);
-
-    // Get regular classes for this day
-    const regularClasses = await ctx.db
-      .query("classes")
-      .withIndex("by_day", (q) => q.eq("dayOfWeek", dayOfWeek))
-      .collect();
-
-    // Filter classes based on week pattern
-    const filteredClasses = regularClasses.filter((cls) => {
-      // If no weekPattern or empty array, class occurs every week
-      if (!cls.weekPattern || cls.weekPattern.length === 0) {
-        return true;
-      }
-      // Check if current week is in the pattern
-      return cls.weekPattern.includes(weekOfMonth);
-    });
-
-    // Get exceptions for this date
-    const exceptions = await ctx.db
-      .query("classExceptions")
-      .withIndex("by_date", (q) => q.eq("date", args.date))
-      .collect();
-
-    // Get subjects
-    const subjects = await ctx.db.query("subjects").collect();
-    const subjectMap = new Map(subjects.map((s) => [s._id, s]));
-
-    // Filter out cancelled classes
-    const cancelledClassIds = new Set(
-      exceptions
-        .filter((e) => e.type === "cancelled" && e.classId)
-        .map((e) => e.classId)
-    );
-
-    const activeRegularClasses = filteredClasses
-      .filter((cls) => !cancelledClassIds.has(cls._id))
-      .map((cls) => ({
-        ...cls,
-        subject: subjectMap.get(cls.subjectId),
-        isException: false,
-      }));
-
-    // Add extra classes
-    const addedClasses = exceptions
-      .filter((e) => e.type === "added")
-      .map((e) => ({
-        _id: e._id,
-        subjectId: e.subjectId,
-        dayOfWeek,
-        startTime: e.startTime || "09:00",
-        endTime: e.endTime || "10:00",
-        type: e.classType || "LECTURE",
-        subject: subjectMap.get(e.subjectId),
-        isException: true,
-        exceptionReason: e.reason,
-      }));
-
-    const allClasses = [...activeRegularClasses, ...addedClasses].sort(
-      (a, b) => a.startTime.localeCompare(b.startTime)
-    );
-
-    return {
-      isHoliday: false,
-      classes: allClasses,
-      weekOfMonth,
-    };
+    return schedules;
   },
 });

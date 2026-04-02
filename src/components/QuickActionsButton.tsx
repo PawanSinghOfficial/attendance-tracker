@@ -14,37 +14,56 @@ import { Id } from "@/convex/_generated/dataModel";
 export function QuickActionsButton() {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedAction, setSelectedAction] = useState<"mark" | "note" | "bulk" | null>(null);
-  const [selectedClass, setSelectedClass] = useState<{ subjectId: Id<"subjects">; classId: Id<"classes">; name: string } | null>(null);
+  const [selectedClass, setSelectedClass] = useState<{
+    subjectId: Id<"subjects">;
+    classId?: Id<"classes">;
+    exceptionId?: Id<"classExceptions">;
+    name: string;
+  } | null>(null);
   const [note, setNote] = useState("");
-
-  const weeklySchedule = useQuery(api.classes.getWeeklySchedule);
-  const allAttendance = useQuery(api.attendance.list);
-  const markAttendance = useMutation(api.attendance.mark);
 
   const today = new Date();
   const todayStr = formatDate(today);
 
+  const todaySchedule = useQuery(api.classes.getScheduleForDate, {
+    date: todayStr,
+  });
+  const allAttendance = useQuery(api.attendance.list);
+  const markAttendance = useMutation(api.attendance.mark);
+
   // Get today's classes
-  const todayClasses =
-    weeklySchedule && weeklySchedule[today.getDay()]
-      ? weeklySchedule[today.getDay()].map((cls) => ({
-          ...cls,
-          attendance: allAttendance?.find((a) => a.classId === cls._id && a.date === todayStr),
-        }))
-      : [];
+  const todayClasses = (todaySchedule?.classes || []).map((cls) => ({
+    ...cls,
+    attendance: allAttendance?.find((a) => {
+      if (cls.isException && cls.exceptionId) {
+        return a.exceptionId === cls.exceptionId && a.date === todayStr;
+      }
+
+      return a.classId === cls._id && a.date === todayStr;
+    }),
+  }));
 
   const unmarkedClasses = todayClasses.filter((cls) => !cls.attendance);
+  const getAttendanceTargetIds = (cls: {
+    _id: string;
+    isException?: boolean;
+    exceptionId?: Id<"classExceptions">;
+  }) => ({
+    classId: cls.isException ? undefined : (cls._id as Id<"classes">),
+    exceptionId: cls.isException ? cls.exceptionId : undefined,
+  });
 
   const handleMarkAttendance = async (status: "present" | "absent") => {
     if (!selectedClass) return;
 
     try {
-      await markAttendance({
-        subjectId: selectedClass.subjectId,
-        classId: selectedClass.classId,
-        date: todayStr,
-        status,
-        note: note || undefined,
+        await markAttendance({
+          subjectId: selectedClass.subjectId,
+          classId: selectedClass.classId,
+          exceptionId: selectedClass.exceptionId,
+          date: todayStr,
+          status,
+          note: note || undefined,
       });
 
       toast.success(
@@ -75,9 +94,11 @@ export function QuickActionsButton() {
   const handleBulkMarkAll = async (status: "present" | "absent") => {
     try {
       for (const cls of unmarkedClasses) {
+        const targetIds = getAttendanceTargetIds(cls);
         await markAttendance({
           subjectId: cls.subjectId,
-          classId: cls._id,
+          classId: targetIds.classId,
+          exceptionId: targetIds.exceptionId,
           date: todayStr,
           status,
         });
@@ -220,13 +241,15 @@ export function QuickActionsButton() {
                         key={cls._id}
                         variant="outline"
                         className="w-full justify-start"
-                        onClick={() =>
+                        onClick={() => {
+                          const targetIds = getAttendanceTargetIds(cls);
                           setSelectedClass({
                             subjectId: cls.subjectId,
-                            classId: cls._id,
+                            classId: targetIds.classId,
+                            exceptionId: targetIds.exceptionId,
                             name: cls.subject?.name || "Unknown",
-                          })
-                        }
+                          });
+                        }}
                       >
                         <div className="text-left flex-1">
                           <div className="font-medium">{cls.subject?.name}</div>

@@ -51,15 +51,30 @@ export const checkExists = query({
   args: {
     subjectId: v.id("subjects"),
     date: v.string(),
+    classId: v.optional(v.id("classes")),
+    exceptionId: v.optional(v.id("classExceptions")),
   },
   handler: async (ctx, args) => {
-    const record = await ctx.db
+    const records = await ctx.db
       .query("attendance")
       .withIndex("by_subject_and_date", (q) =>
         q.eq("subjectId", args.subjectId).eq("date", args.date)
       )
-      .first();
-    return record;
+      .collect();
+
+    return (
+      records.find((record) => {
+        if (args.exceptionId) {
+          return record.exceptionId === args.exceptionId;
+        }
+
+        if (args.classId) {
+          return record.classId === args.classId;
+        }
+
+        return !record.classId && !record.exceptionId;
+      }) || null
+    );
   },
 });
 
@@ -68,18 +83,30 @@ export const mark = mutation({
   args: {
     subjectId: v.id("subjects"),
     classId: v.optional(v.id("classes")),
+    exceptionId: v.optional(v.id("classExceptions")),
     date: v.string(),
     status: v.union(v.literal("present"), v.literal("absent")),
     note: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Check if attendance already exists for this subject on this date
-    const existing = await ctx.db
+    const existingRecords = await ctx.db
       .query("attendance")
       .withIndex("by_subject_and_date", (q) =>
         q.eq("subjectId", args.subjectId).eq("date", args.date)
       )
-      .first();
+      .collect();
+
+    const existing = existingRecords.find((record) => {
+      if (args.exceptionId) {
+        return record.exceptionId === args.exceptionId;
+      }
+
+      if (args.classId) {
+        return record.classId === args.classId;
+      }
+
+      return !record.classId && !record.exceptionId;
+    });
 
     if (existing) {
       // Update existing record
@@ -87,6 +114,7 @@ export const mark = mutation({
         status: args.status,
         timestamp: Date.now(),
         classId: args.classId,
+        exceptionId: args.exceptionId,
         note: args.note,
       });
       return existing._id;
@@ -95,6 +123,7 @@ export const mark = mutation({
       return await ctx.db.insert("attendance", {
         subjectId: args.subjectId,
         classId: args.classId,
+        exceptionId: args.exceptionId,
         date: args.date,
         status: args.status,
         timestamp: Date.now(),

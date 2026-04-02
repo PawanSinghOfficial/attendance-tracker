@@ -63,6 +63,7 @@ const schema = defineSchema(
     attendance: defineTable({
       subjectId: v.id("subjects"),
       classId: v.optional(v.id("classes")), // Optional link to scheduled class
+      exceptionId: v.optional(v.id("classExceptions")), // Optional link to a date-specific extra class
       date: v.string(), // Format: "YYYY-MM-DD"
       status: v.union(v.literal("present"), v.literal("absent")),
       timestamp: v.number(), // Unix timestamp when marked
