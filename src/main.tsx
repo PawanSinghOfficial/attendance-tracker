@@ -29,7 +29,31 @@ function RouteLoading() {
   );
 }
 
-const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
+function MissingEnvScreen() {
+  return (
+    <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">
+      <div className="max-w-2xl w-full rounded-2xl border bg-card p-8 space-y-4">
+        <h1 className="text-3xl font-bold tracking-tight">Setup Required</h1>
+        <p className="text-muted-foreground">
+          The app could not start because <code>VITE_CONVEX_URL</code> is not set
+          in your local environment.
+        </p>
+        <div className="rounded-xl bg-muted p-4 text-sm space-y-2">
+          <p>Add a <code>.env.local</code> file in the project root with:</p>
+          <pre className="whitespace-pre-wrap break-all">
+VITE_CONVEX_URL=https://your-deployment.convex.cloud
+          </pre>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          After saving the file, restart the dev server.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+const convexUrl = import.meta.env.VITE_CONVEX_URL as string | undefined;
+const convex = convexUrl ? new ConvexReactClient(convexUrl) : null;
 
 
 
@@ -80,17 +104,24 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <VlyToolbar />
     <InstrumentationProvider>
-      <ConvexProvider client={convex}>
-        <ConvexAuthProvider client={convex}>
-          <BrowserRouter>
-            <RouteSyncer />
-            <Suspense fallback={<RouteLoading />}>
-              <AnimatedRoutes />
-            </Suspense>
-          </BrowserRouter>
+      {convex ? (
+        <ConvexProvider client={convex}>
+          <ConvexAuthProvider client={convex}>
+            <BrowserRouter>
+              <RouteSyncer />
+              <Suspense fallback={<RouteLoading />}>
+                <AnimatedRoutes />
+              </Suspense>
+            </BrowserRouter>
+            <Toaster />
+          </ConvexAuthProvider>
+        </ConvexProvider>
+      ) : (
+        <>
+          <MissingEnvScreen />
           <Toaster />
-        </ConvexAuthProvider>
-      </ConvexProvider>
+        </>
+      )}
     </InstrumentationProvider>
   </StrictMode>,
 );
