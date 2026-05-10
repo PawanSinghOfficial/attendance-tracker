@@ -151,6 +151,17 @@ export default function Dashboard() {
   const [showUpcomingDays, setShowUpcomingDays] = useState(false);
   const [rangeStartDate, setRangeStartDate] = useState("");
   const [rangeEndDate, setRangeEndDate] = useState("");
+  const today = new Date();
+  const todayStr = formatDate(today);
+  const weekDates = getCurrentWeekDates();
+  const scheduleRangeStart = formatDate(weekDates[0]);
+  const scheduleRangeEnd = formatDate(
+    addDays(today, 6) > weekDates[5] ? addDays(today, 6) : weekDates[5]
+  );
+  const scheduleByDate = useQuery(api.classes.getScheduleForDateRange, {
+    startDate: scheduleRangeStart,
+    endDate: scheduleRangeEnd,
+  });
 
   if (isLoading) {
     return (
@@ -165,16 +176,6 @@ export default function Dashboard() {
   if (!isAuthenticated) {
     return <Navigate to="/auth" />;
   }
-
-  const today = new Date();
-  const todayStr = formatDate(today);
-  const weekDates = getCurrentWeekDates();
-  const scheduleRangeStart = formatDate(weekDates[0]);
-  const scheduleRangeEnd = formatDate(addDays(today, 6) > weekDates[5] ? addDays(today, 6) : weekDates[5]);
-  const scheduleByDate = useQuery(api.classes.getScheduleForDateRange, {
-    startDate: scheduleRangeStart,
-    endDate: scheduleRangeEnd,
-  });
   const hasCustomRange = Boolean(rangeStartDate || rangeEndDate);
   const filteredAttendance =
     allAttendance?.filter((record) => {
