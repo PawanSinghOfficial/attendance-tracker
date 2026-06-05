@@ -2,10 +2,10 @@ import { Toaster } from "@/components/ui/sonner";
 import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
 import { InstrumentationProvider } from "@/instrumentation.tsx";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
-import { ConvexReactClient, ConvexProvider } from "convex/react";
+import { ConvexReactClient, ConvexProvider, useConvexAuth } from "convex/react";
 import { StrictMode, useEffect, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Route, Routes, useLocation } from "react-router";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router";
 import { AnimatePresence } from "framer-motion";
 import "./index.css";
 import "./types/global.d.ts";
@@ -27,6 +27,32 @@ function RouteLoading() {
       <div className="animate-pulse text-muted-foreground">Loading...</div>
     </div>
   );
+}
+
+function AuthGate({
+  children,
+  requireAuth,
+  redirectTo,
+}: {
+  children: React.ReactNode;
+  requireAuth: boolean;
+  redirectTo: string;
+}) {
+  const { isAuthenticated, isLoading } = useConvexAuth();
+
+  if (isLoading) {
+    return <RouteLoading />;
+  }
+
+  if (requireAuth && !isAuthenticated) {
+    return <Navigate to={redirectTo} replace />;
+  }
+
+  if (!requireAuth && isAuthenticated) {
+    return <Navigate to={redirectTo} replace />;
+  }
+
+  return <>{children}</>;
 }
 
 function MissingEnvScreen() {
@@ -87,12 +113,54 @@ function AnimatedRoutes() {
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<Landing />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/subjects" element={<Subjects />} />
-        <Route path="/schedule" element={<Schedule />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/backup" element={<Backup />} />
-        <Route path="/auth" element={<AuthPage redirectAfterAuth="/dashboard" />} />
+        <Route
+          path="/dashboard"
+          element={
+            <AuthGate requireAuth={true} redirectTo="/auth">
+              <Dashboard />
+            </AuthGate>
+          }
+        />
+        <Route
+          path="/subjects"
+          element={
+            <AuthGate requireAuth={true} redirectTo="/auth">
+              <Subjects />
+            </AuthGate>
+          }
+        />
+        <Route
+          path="/schedule"
+          element={
+            <AuthGate requireAuth={true} redirectTo="/auth">
+              <Schedule />
+            </AuthGate>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <AuthGate requireAuth={true} redirectTo="/auth">
+              <Settings />
+            </AuthGate>
+          }
+        />
+        <Route
+          path="/backup"
+          element={
+            <AuthGate requireAuth={true} redirectTo="/auth">
+              <Backup />
+            </AuthGate>
+          }
+        />
+        <Route
+          path="/auth"
+          element={
+            <AuthGate requireAuth={false} redirectTo="/dashboard">
+              <AuthPage redirectAfterAuth="/dashboard" />
+            </AuthGate>
+          }
+        />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AnimatePresence>

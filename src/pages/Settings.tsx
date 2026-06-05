@@ -14,9 +14,11 @@ import { NotificationSettings } from "@/components/settings/NotificationSettings
 import { SemesterSettings } from "@/components/settings/SemesterSettings";
 import { HolidaySettings } from "@/components/settings/HolidaySettings";
 import { BackupRestore } from "@/components/BackupRestore";
+import { useNavigate } from "react-router";
 
 export default function Settings() {
   const { signOut } = useAuthActions();
+  const navigate = useNavigate();
   const settings = useQuery(api.settings.get);
   const holidays = useQuery(api.holidays.list);
   const subjects = useQuery(api.subjects.list);
@@ -44,6 +46,15 @@ export default function Settings() {
     toast.success("Data exported successfully");
   };
 
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate("/auth", { replace: true });
+    } catch (error) {
+      toast.error("Failed to sign out");
+    }
+  };
+
   if (!settings) {
     return (
       <PageTransition>
@@ -68,7 +79,7 @@ export default function Settings() {
               Configure your attendance tracking preferences
             </p>
           </div>
-          <Button variant="destructive" size="sm" onClick={() => signOut()}>
+          <Button variant="destructive" size="sm" onClick={handleSignOut}>
             <LogOut className="mr-2 h-4 w-4" />
             Sign Out
           </Button>

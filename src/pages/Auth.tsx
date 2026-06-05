@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuthActions } from "@convex-dev/auth/react";
+import { useConvexAuth } from "convex/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +26,7 @@ interface RateLimitData {
 
 export default function Auth({ redirectAfterAuth = "/dashboard" }: { redirectAfterAuth?: string }) {
   const { signIn } = useAuthActions();
+  const { isAuthenticated, isLoading: isAuthLoading } = useConvexAuth();
   const [step, setStep] = useState<"email" | "otp">("email");
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState("");
@@ -40,6 +42,12 @@ export default function Auth({ redirectAfterAuth = "/dashboard" }: { redirectAft
       return () => clearTimeout(timer);
     }
   }, [resendTimer]);
+
+  useEffect(() => {
+    if (!isAuthLoading && isAuthenticated) {
+      navigate(redirectAfterAuth, { replace: true });
+    }
+  }, [isAuthenticated, isAuthLoading, navigate, redirectAfterAuth]);
 
   // Email validation function with comprehensive checks
   const validateEmail = (email: string): boolean => {
@@ -238,7 +246,6 @@ export default function Auth({ redirectAfterAuth = "/dashboard" }: { redirectAft
       localStorage.removeItem(VERIFY_RATE_LIMIT_KEY);
 
       toast.success("Successfully signed in!");
-      navigate(redirectAfterAuth);
     } catch (error: any) {
       console.error(error);
       const errorMessage = error?.message || "Invalid code. If you requested a new code, please wait for the latest email.";

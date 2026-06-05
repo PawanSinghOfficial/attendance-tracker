@@ -1,5 +1,5 @@
 import { LayoutDashboard, BookOpen, Settings, CalendarDays, HelpCircle, LogOut } from "lucide-react";
-import { Link, useLocation } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { motion } from "framer-motion";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { cn } from "@/lib/utils";
@@ -39,6 +39,7 @@ const navItems = [
 export function AppSidebar() {
   const { signOut } = useAuthActions();
   const location = useLocation();
+  const navigate = useNavigate();
   const user = useQuery(api.users.currentUser);
   const updateProfile = useMutation(api.users.updateProfile);
   
@@ -79,6 +80,15 @@ export function AppSidebar() {
       toast.success("Profile updated");
     } catch (error) {
       toast.error("Failed to update profile");
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate("/auth", { replace: true });
+    } catch (error) {
+      toast.error("Failed to sign out");
     }
   };
 
@@ -167,7 +177,7 @@ export function AppSidebar() {
               <Button 
                 variant="destructive" 
                 className="w-full" 
-                onClick={() => signOut()}
+                onClick={handleSignOut}
               >
                 <LogOut className="mr-2 h-4 w-4" />
                 Sign Out
